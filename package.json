@@ -1,0 +1,22 @@
+{
+  "name": "grammardraw",
+  "version": "1.0.0",
+  "description": "drawing using grammars",
+  "main": "index.js",
+  "browserslist": "> 0.5%, last 2 versions, not dead",
+  "scripts": {
+    "test": "npx parcel index.html"
+  },
+  "author": "Evan Raskob",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@svgdotjs/svg.js": "^3.1.2",
+    "@tonaljs/tonal": "^4.6.5",
+    "honeycomb-grid": "^3.1.8",
+    "nearley": "^2.20.1",
+    "tone": "^14.7.77"
+  },
+  "devDependencies": {
+    "parcel": "^2.4.0"
+  }
+}
