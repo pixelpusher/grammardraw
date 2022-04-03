@@ -17,7 +17,8 @@ export default class Ant {
         this.maxLife = _maxLife; // max number of ticks this 'lives' for
         this.path = [[_x, _y]];
         this.sequence = '';
-        this.angle = 0; // angle of movement
+        this.angle = 0; // angle of movement,
+        this.scale = 1; // scaling factor for current draw movements
         this.currentLife = 0; // current 'tick'
     }
 }

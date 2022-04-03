@@ -5,7 +5,8 @@
   "main": "index.js",
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
-    "test": "npx parcel index.html"
+    "test": "npx parcel index.html",
+    "testseq": "npx parcel modules/sequences.js"
   },
   "author": "Evan Raskob",
   "license": "GPL-3.0-or-later",

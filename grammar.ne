@@ -5,12 +5,13 @@
 	| BasicStatement Space PIPE:? {% d => d[0] %}
 
 
-BasicStatement -> PlainVariable Space ":":? Space AnyVar:? {% function ([pv, sp1, colon, sp2, var1]) { return {
+BasicStatement -> PlainVariable Space ":":? Space AnyVar:? {% function ([pv, sp1, colon, sp2, var1], _, result) { return {
 		type:"function",
 		name: pv,
-		arg: var1
+		arg: var1,
+		loc: _
 	};																		 
-}
+																									 }
 %}
 
 # valid variable types for math ops etc
@@ -29,9 +30,9 @@ StringLiteral -> QUOTE (AnyValidCharacter | DOT | [()\s]):? QUOTE {% ([lquote, s
 Number -> Integer 	{% id %}
 	| Float 		{% id %}
 	
-Float -> (Zero | Integer) "." [0-9]:+		{% ([num1, dot, num2]) => num1 + dot + num2.join('') %}
+Float -> Integer "." [0-9]:+		{% ([num1, dot, num2]) => num1 + dot + num2.join('') %}
 
-Integer -> Zero |
+Integer -> "-":? Zero {% ([sign, num1]) => (sign ? "-" : "") + num1 %} | 
 		"-":? NonzeroNumber Digit:*   {% ([sign, num1, num2]) => (sign ? "-" : "") + num1 + num2.join('') %}
 		#{% d => ({ d:d[0] + d[1].join(''), v: parseInt(d[0] + d[1].join('')) }) %}
 

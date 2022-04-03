@@ -1,9 +1,5 @@
 // see https://github.com/flauwekeul/honeycomb#get
 
-
-const nearley  = require("nearley");
-const grammar = require ("./grammar.js");
-
 import { extendHex, defineGrid } from 'honeycomb-grid';
 import { SVG, extend as SVGextend, Element as SVGElement } from '@svgdotjs/svg.js';
 import { Interval, Note, Scale } from "@tonaljs/tonal";
@@ -12,10 +8,15 @@ import * as Tone from 'tone';
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
 import { d2r, moveAnt, createAnt, removeAntTrace } from "./modules/antgrid-api";
+import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createEReplaceSequence, testSequences } from "./modules/sequences.js";
 
 
 window.addEventListener('load', (event) => {
     console.log('page is fully loaded');
+
+    //TEST
+    testSequences();
+
 
     const drawing = SVG().addTo('#svg-holder').size('90%', '100%');
     const drawGroup = drawing.group();
@@ -26,7 +27,7 @@ window.addEventListener('load', (event) => {
 
     console.info('w/h:' + w + '/' + h);
 
-    const dims = [120,80]; // dimensions of underlying grid - careful not to make too big!
+    const dims = [600,400]; // dimensions of underlying grid - careful not to make too big!
 
     let animating = false;
     let currentAnimation = -1;
@@ -38,7 +39,7 @@ window.addEventListener('load', (event) => {
     //create a synth and connect it to the main output (your speakers)
     const synth = new Tone.Synth().toDestination();
 
-    const Hex = extendHex({ size: 4 });
+    const Hex = extendHex({ size: 4 }); 
     const HexGrid = defineGrid(Hex);
 
     // get the corners of a hex (they're the same for all hexes created with the same Hex factory)
@@ -57,22 +58,24 @@ window.addEventListener('load', (event) => {
             "type": "main",
             "function": (ant, arg) => {  
                 let moved = [];
+                const scaledMove = arg*ant.scale;
+                const angleRadians = d2r(ant.angle);
                 
-                console.info(`D move ${arg}`);
+                //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
                 //console.log(ant);
 
                 // move from current position to new position in the current direction by number of cells specified in cmd
                 let newx, newy;
                 
-                newx =  ant.x + Math.round(arg * Math.cos(d2r(ant.angle)));
-                newy =  ant.y + Math.round(arg * Math.sin(d2r(ant.angle)));
+                newx =  ant.x + Math.round(scaledMove * Math.cos(angleRadians));
+                newy =  ant.y + Math.round(scaledMove * Math.sin(angleRadians));
 
                 // move or die
                 if (grid.get(newx, newy) === Grid.EMPTY) {
                     if ((ant.x !== newx) || (ant.y !== newy)) {
                         moved = [newx, newy];
 
-                        console.log(`Moved: ${moved}`)
+                        //console.log(`Moved: ${moved}`)
 
                         ant.x = newx;
                         ant.y = newy;
@@ -87,7 +90,7 @@ window.addEventListener('load', (event) => {
                     }
                 } else {
                     console.log(`Ant hit edge or cell: ${newx}:${newy}`);
-                    ant.alive = false;
+                    //ant.alive = false;
                 }
                 return moved; // moved
             }
@@ -97,17 +100,31 @@ window.addEventListener('load', (event) => {
             "type": "turn",
             "function":
                 (ant, arg) => {// rotate internal angle only
-                console.info(`T move ${arg}`);
+                // console.info(`T move ${arg}`);
 
                 ant.angle += arg;
+                return [];
+            }
+        },
+
+        'S': {
+            "type": "scale",
+            "function": (ant, arg) => {// set scaling factor for draw operations
+                let infoString = `S by ${arg} from ${ant.scale} `;
+                ant.scale *= arg;
+                infoString = infoString + `to ${ant.scale}`;
+                //console.info(infoString);
+
                 return [];
             }
         }
     };
 
 
-    // array of draw functions, parsed
-    let antFunctionSequence = [];
+    //
+    // Ant movements, set in setup
+    //
+    let antSequence = "", antFunctionSequence = [];
 
 
     document.getElementById('play').addEventListener('click', async (event) => {
@@ -176,42 +193,28 @@ window.addEventListener('load', (event) => {
         // });
         // gridDrawings = [];
 
-        
         if (!grid) grid = new Grid(dims[0], dims[1] );
         
         if (!ant) 
         {
             console.info("setting up ant");
 
-            antFunctionSequence = [];
+            // create initial sequence string, and corresponding turn-by-turn function map
+            antSequence = createESequence();
+            antFunctionSequence = parseSequenceToMap(antSequence);
 
-            ant = createAnt(grid);
-                
+            const replaceSequence = createEReplaceSequence();
+            const replaceMap = parseSequenceToMap(replaceSequence);
+            antFunctionSequence = replaceFunctionsInMap(['D'], antFunctionSequence, replaceMap);
+        
+            ant = new Ant(0,0);
+
+            grid.clear();
+            grid.set(ant.x, ant.y, Grid.FULL);
+                        
             ant.line = drawGroup.polyline(gridPosToWorld([ant.x, ant.y],grid))
                 .fill('none')
                 .attr({stroke: 'hsl(100,80%,40%)', 'stroke-width': 2});
-
-
-            let parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
-
-            parser.feed(ant.sequence);
-                
-            try {
-                //console.log(parser.results);    
-            
-                for (let result of parser.results[0]) {
-                    antFunctionSequence.push(result);
-                }
-            } catch (parseError) {
-                    console.log("Error at character " + parseError.offset); // "Error at character 9"
-            }            
-            // render 10,000 hexes
-            // HexGrid.rectangle({ width: dims[0], height: dims[1] }).forEach(hex => {
-            //     const { x, y } = hex.toPoint()
-            //     // use hexSymbol and set its position for each hex
-            //     drawing.use(hexSymbol).translate(x, y)
-            // });
-
         }
     }
 
