@@ -72,8 +72,11 @@ export function createHilbertSequence()
 }
 
 export function hilbertReplacements(sideLength) {
-    const AMap = `S:0.25|T:-90|B|D:${sideLength}|T:90|A|D:${sideLength}|A|T:90|D:${sideLength}|B|T:-90|S:4|`;
-    const BMap = `S:0.25|T:90|A|D:${sideLength}|T:-90|B|D:${sideLength}|B|T:-90|D:${sideLength}|A|T:90|S:4|`;
+    // const AMap = `S:0.5|T:-90|B|D:${sideLength}|T:90|A|D:${sideLength}|A|T:90|D:${sideLength}|B|T:-90|S:2|`;
+    // const BMap = `S:0.5|T:90|A|D:${sideLength}|T:-90|B|D:${sideLength}|B|T:-90|D:${sideLength}|A|T:90|S:2|`;
+    const AMap = `T:-90|B|D:${sideLength}|T:90|A|D:${sideLength}|A|T:90|D:${sideLength}|B|T:-90|`;
+    const BMap = `T:90|A|D:${sideLength}|T:-90|B|D:${sideLength}|B|T:-90|D:${sideLength}|A|T:90|`;
+
     return [
         {name: 'A', sequence:parseSequenceToMap(AMap) },
         {name: 'B', sequence:parseSequenceToMap(BMap) }

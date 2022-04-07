@@ -14,16 +14,7 @@ import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbe
 window.addEventListener('load', (event) => {
     console.log('page is fully loaded');
 
-    //TEST
-    testSequences();
-
-
-    const hilbert = parseSequenceToMap(createHilbertSequence());
-    const hilbertReps = hilbertReplacements(24);
-
-    const hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbert);
-    console.log('HILBERT');
-    console.log(hilbertIter1);
+    const frameIntervalTimeMs = 20;
 
     const drawing = SVG().addTo('#svg-holder').size('90%', '80%');
     const drawGroup = drawing.group();
@@ -73,7 +64,7 @@ window.addEventListener('load', (event) => {
                 const scaledMove = Number(arg)*ant.scale;
                 const angleRadians = d2r(ant.angle);
                 
-                console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
+                //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
                 //console.log(ant);
 
                 // move from current position to new position in the current direction by number of cells specified in cmd
@@ -112,7 +103,7 @@ window.addEventListener('load', (event) => {
             "type": "turn",
             "function":
                 (ant, arg) => {// rotate internal angle only
-                console.info(`T move ${arg}`);
+                //console.info(`T move ${arg}`);
 
                 ant.angle += Number(arg);
                 return [];
@@ -150,11 +141,11 @@ window.addEventListener('load', (event) => {
         },
         'A': {
             "type": "none",
-            "function": (ant, arg) => {} 
+            "function": (ant, arg) => [] 
         },
         'B': {
             "type": "none",
-            "function": (ant, arg) => {} 
+            "function": (ant, arg) => [] 
         },
     };
 
@@ -200,7 +191,7 @@ window.addEventListener('load', (event) => {
 
             let timeDiff = Date.now() - then;
 
-            if (timeDiff > 80) {
+            if (timeDiff > frameIntervalTimeMs) {
                 then = Date.now();
                 draw();
             }            
@@ -226,6 +217,11 @@ window.addEventListener('load', (event) => {
     function setup()
     {
         console.info("SETUP----------------");
+
+
+        //TEST
+        testSequences();
+        console.log('End test-----------------');
 
         // gridDrawings.map(g => {
         //     g.grid.clear();
@@ -297,9 +293,22 @@ window.addEventListener('load', (event) => {
         
             // console.log(antFunctionSequence);
 
+            const hilbertIters = 5;
+            const hilbert = parseSequenceToMap(createHilbertSequence());
+            const hilbertReps = hilbertReplacements(dims[0]/(Math.pow(2,hilbertIters+2)));
+
+            let hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbert);
+            for (let i=0; i<hilbertIters; i++) {
+                hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbertIter1);
+            }
+
+            //console.log('HILBERT');
+            //console.log(hilbertIter1);
+
+
             antFunctionSequence = hilbertIter1;
         
-            ant = new Ant(dims[0]/20,dims[1]/10);
+            ant = new Ant(0,dims[1]);
 
             grid.clear();
             grid.set(ant.x, ant.y, Grid.FULL);
@@ -311,24 +320,27 @@ window.addEventListener('load', (event) => {
     }
 
 
-    let moves = 0;
 
     function draw() {
+        let moves = 0;
+        let didItActuallyMove = true;
         
-        moves++;
-
-       // if (moves >= 20) cancelAnimationFrame(currentAnimation);
-        //else {
+        while (antFunctionSequence.length > 0 && didItActuallyMove)    
+        {
             const moved = moveAnt(ant, functionMap, antFunctionSequence);
+            didItActuallyMove = (moved.length !== 0);
 
-            if (moved.length !== 0)
+            if (didItActuallyMove)
             {
-                const infoBox = document.getElementById('info');
-                infoBox.innerHTML += '<br/>' + gridPosToWorld(moved,grid);
+                //const infoBox = document.getElementById('info');
+                //infoBox.innerHTML += '<br/>' + gridPosToWorld(moved,grid);
                 const scaledPath = ant.path.map(p => gridPosToWorld(p,grid));
                 ant.line = ant.line.plot(scaledPath);
             }
-        //}
+            moves++;
+         
+            if (moves > 10) break; // safety
+        }
     }
 
     const resize = setup;
