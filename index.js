@@ -14,7 +14,7 @@ import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbe
 window.addEventListener('load', (event) => {
     console.log('page is fully loaded');
 
-    const frameIntervalTimeMs = 20;
+    const frameIntervalTimeMs = 6000/120;
 
     const drawing = SVG().addTo('#svg-holder').size('90%', '80%');
     const drawGroup = drawing.group();
@@ -218,6 +218,9 @@ window.addEventListener('load', (event) => {
     {
         console.info("SETUP----------------");
 
+        // setup Tone
+        Tone.Transport.start();
+
 
         //TEST
         testSequences();
@@ -293,7 +296,7 @@ window.addEventListener('load', (event) => {
         
             // console.log(antFunctionSequence);
 
-            const hilbertIters = 5;
+            const hilbertIters = 4;
             const hilbert = parseSequenceToMap(createHilbertSequence());
             const hilbertReps = hilbertReplacements(dims[0]/(Math.pow(2,hilbertIters+2)));
 
@@ -320,11 +323,16 @@ window.addEventListener('load', (event) => {
     }
 
 
+    let readyToDraw = false; // true when finished moving
+    let notesSequence = Scale.get("c3 pentatonic").notes.concat(Scale.get("c4 pentatonic").notes);
+    let currentNoteIndex = 0;
 
     function draw() {
         let moves = 0;
         let didItActuallyMove = true;
         
+        // let currentNote = 
+
         while (antFunctionSequence.length > 0 && didItActuallyMove)    
         {
             const moved = moveAnt(ant, functionMap, antFunctionSequence);
@@ -332,6 +340,10 @@ window.addEventListener('load', (event) => {
 
             if (didItActuallyMove)
             {
+                synth.triggerAttackRelease(notesSequence[Math.round(currentNoteIndex*Math.random())], "32n");
+
+                currentNoteIndex = (currentNoteIndex + 1) % notesSequence.length;
+
                 //const infoBox = document.getElementById('info');
                 //infoBox.innerHTML += '<br/>' + gridPosToWorld(moved,grid);
                 const scaledPath = ant.path.map(p => gridPosToWorld(p,grid));
