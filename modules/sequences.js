@@ -65,6 +65,22 @@ export function parseSequenceToMap(sequence) {
 }
 
 
+export function createHilbertSequence()
+{
+    const sequence = "A";
+    return sequence;
+}
+
+export function hilbertReplacements(sideLength) {
+    const AMap = `S:0.25|T:-90|B|D:${sideLength}|T:90|A|D:${sideLength}|A|T:90|D:${sideLength}|B|T:-90|S:4|`;
+    const BMap = `S:0.25|T:90|A|D:${sideLength}|T:-90|B|D:${sideLength}|B|T:-90|D:${sideLength}|A|T:90|S:4|`;
+    return [
+        {name: 'A', sequence:parseSequenceToMap(AMap) },
+        {name: 'B', sequence:parseSequenceToMap(BMap) }
+    ];
+}
+
+
 /**
  * Create the 'E' sequence string
  * @returns {String} sequence as string
@@ -157,11 +173,13 @@ export function createESequence({
 /**
  * Replace a function type (e.g. 'D') in the function map with a new sequence.
  * For iterating L-Systems through replacement
- * @param {Array} functionNames Array of function names to replace e.g. ['D', 'F'] 
- * @param {Array} replacementArray Replacement array
+ * @param {Array} functionNames Array of function names to replace e.g. [{name:'D', sequence:function array}] 
+ * @param {Array} functionArray Array of functions to replace in    
  */
-export function replaceFunctionsInMap(functionNames, functionArray, replacementArray) {
-    
+export function replaceFunctionsInMap(replacements, functionArray) {
+
+//    functionNames, functionArray, replacementArray
+
     // each function returned is an object:
     // { 
     //  type:"function",
@@ -169,34 +187,28 @@ export function replaceFunctionsInMap(functionNames, functionArray, replacementA
     //  arg: args     // number, object, string
     // }
     
-    const matches = [];
-    for (const f of functionNames) {
-        matches.push(`^(${f})$`);
-    }
-    const matcherString = matches.join('|');
 
-    const matcher = new RegExp(matcherString, "i"); // cut off end | of string
-    //console.log(matcher);
-    //console.log(matcherString);
-    
     let i=-1;
 
-    while (++i < functionArray.length-1) {
+    while (++i < functionArray.length) {
 
         const currentFunc = functionArray[i];
         //console.log(`currentFunc.name: ${currentFunc.name}`);
-        if (matcher.test(currentFunc.name)) {
-            //console.info(`Matched: ${currentFunc.name}`);
-            //console.log(`match index: ${i} :: replacement length: ${replacementArray.length}`);
-            
-            const array1 = functionArray.slice(0,i);
-            //console.log(array1);
-            const array2 = functionArray.slice(i+1);
-            //console.log(array2);            
-            functionArray = array1.concat(replacementArray).concat(array2);
+        for (const rep of replacements)
+        {
+            if (rep.name == currentFunc.name) {
+                //console.info(`Matched: ${currentFunc.name}`);
+                //console.log(`match index: ${i} :: replacement length: ${replacementArray.length}`);
+                
+                const array1 = functionArray.slice(0,i);
+                //console.log(array1);
+                const array2 = functionArray.slice(i+1);
+                //console.log(array2);            
+                functionArray = array1.concat(rep.sequence).concat(array2);
 
-            i += replacementArray.length - 1; // update to length minus this replaced func 
-            //console.log(`i now ${i}`);
+                i += rep.sequence.length - 1; // update to length minus this replaced func 
+                //console.log(`i now ${i}`);
+            }
         }
         
     }
@@ -224,7 +236,7 @@ export function testSequences() {
     console.info(`replacement function map:`);
     console.info(replaceMap);
 
-    funcMap = replaceFunctionsInMap(['D', 'D2'], funcMap, replaceMap);
+    funcMap = replaceFunctionsInMap([{name:'D', sequence:replaceMap}], funcMap);
     console.log(`Function map now:`);
     console.info(funcMap);
 }

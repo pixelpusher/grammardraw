@@ -8,7 +8,7 @@ import * as Tone from 'tone';
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
 import { d2r, moveAnt, createAnt, removeAntTrace } from "./modules/antgrid-api";
-import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createEReplaceSequence, testSequences } from "./modules/sequences.js";
+import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbertSequence, hilbertReplacements, testSequences } from "./modules/sequences.js";
 
 
 window.addEventListener('load', (event) => {
@@ -17,6 +17,13 @@ window.addEventListener('load', (event) => {
     //TEST
     testSequences();
 
+
+    const hilbert = parseSequenceToMap(createHilbertSequence());
+    const hilbertReps = hilbertReplacements(24);
+
+    const hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbert);
+    console.log('HILBERT');
+    console.log(hilbertIter1);
 
     const drawing = SVG().addTo('#svg-holder').size('90%', '80%');
     const drawGroup = drawing.group();
@@ -140,7 +147,15 @@ window.addEventListener('load', (event) => {
 
                 return [];
             }
-        }
+        },
+        'A': {
+            "type": "none",
+            "function": (ant, arg) => {} 
+        },
+        'B': {
+            "type": "none",
+            "function": (ant, arg) => {} 
+        },
     };
 
     functionMap.D2 = functionMap.D; // synonym, but D2's aren't replaced when iterated
@@ -282,6 +297,7 @@ window.addEventListener('load', (event) => {
         
             // console.log(antFunctionSequence);
 
+            antFunctionSequence = hilbertIter1;
         
             ant = new Ant(dims[0]/20,dims[1]/10);
 
