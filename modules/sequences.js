@@ -2,6 +2,17 @@ import nearley  from "nearley";
 import { isArray } from "tone";
 import grammar from "../grammar.js";
 
+/**
+ * 
+ * @param {string} sequence The string representation of the sequence to turn into a an array of functions 
+ * @returns {Array} Keys mapping to drawing functions: each entry is an object:
+ * { 
+ *      type:"function",
+ *      name: "name", // Any char or string like 'D','T', etc.
+ *      arg: args     // a number, object, string to be evaluated as JavaScript and passed to the function
+ *  }
+ * @throws {SyntaxError} on parse issue
+ */
 export function parseSequenceToMap(sequence) {
 
     let functionSequenceMap = [];
@@ -11,7 +22,7 @@ export function parseSequenceToMap(sequence) {
     //
     const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
-    console.info(`Feed ${sequence}`)
+    //console.info(`Feed ${sequence}`)
 
     parser.feed(sequence);
 
@@ -39,8 +50,9 @@ export function parseSequenceToMap(sequence) {
             functionSequenceMap.push(parser.results[0]);
         }
     } catch (parseError) {
+        console.error("Parser error:");
         console.error(parseError);
-            console.error("Error at character " + parseError.offset); // "Error at character 9"
+        throw new SyntaxError(`Parser error at character ${parseError.offset} (${sequence[parseError.offset]})`, 'sequences.js', 55);
     }            
     // render 10,000 hexes
     // HexGrid.rectangle({ width: dims[0], height: dims[1] }).forEach(hex => {
@@ -54,19 +66,20 @@ export function parseSequenceToMap(sequence) {
 
 
 /**
- * 
+ * Create the 'E' sequence string
  * @returns {String} sequence as string
  */
 export function createESequence({
     bends=4, 
     blocksPerRow=4, /* must be even! */
+    rows=1,
     majLength=96, 
     minLength=48,
     dir=-1,
     startAngle=90
     }={})  
 {
-    const blocks = blocksPerRow*3;
+    const blocks = blocksPerRow*rows;
     let sequence = "";
     let angle = startAngle;
 
@@ -117,21 +130,21 @@ export function createESequence({
         {
             for (let i=0; i < 2; i++) {
                 dir = -dir;
-                sequence += `D:${ll}|T:${dir*angle}|D:${ml}|T:${dir*angle}|`;            
+                sequence += `C:c1|D:${ll}|T:${dir*angle}|D:${ml}|T:${dir*angle}|`;            
             }
         }
         if (evenBlock) 
         {
-            sequence += `D:${ll}|D:${minLength}|T:${dir*angle}|`;
+            sequence += `C:c2|D:${ll}|D2:${minLength}|T:${dir*angle}|`;
         }
         else 
         {
-            sequence += `D:${ll}|T:${-dir*angle}|D:${minLength}|`;
-            
+            //sequence += `C:c3|D:${ll}|T:${-dir*angle}|D2:${minLength}|`;
         }
         if (block > 0 && (block % blocksPerRow === (blocksPerRow-1))) {
             dir = -dir;
-            sequence += `T:${dir*angle}|D:${ll}|D:${ml}|T:${dir*angle}|`;
+            // sequence += `C:c4|T:${dir*angle}|D2:${ll}|D2:${ml}|T:${dir*angle}|`;
+            sequence += `C:c4|T:${dir*angle}|T:${dir*angle}|D2:${ml}|T:${dir*angle}|`;
         }
     }
 
@@ -140,64 +153,6 @@ export function createESequence({
     return sequence;
 }
 
-
-/**
- * 
- * @returns {String} sequence as string
- */
- export function createEReplaceSequence({
-    bends=2, 
-    majLength=12, 
-    minLength=12,
-    dir=1,
-    startAngle=90
-    }={})  
-{
-    let sequence = ""; // scale by 1/2
-    let angle = startAngle;
-
-    // sequence: 
-    //  D = draw
-    //  T = turn
-    //  M = move (no draw)
-
-    // algo:
-
-    // for even blocks long length = maj length, for odd long length = 2*minor length
-
-    // for each bend:
-
-    // do 2x:
-
-    //  dir = -dir
-
-    //  go long length
-    //  turn 90*dir
-    //  go long length
-    //  turn 90*dir
-
-    sequence += "S:0.25|"
-
-        const longLength = majLength;
-
-        let jitter = (Math.round(2*Math.random())/10 + 0.8);
-
-        let ll = longLength;
-        let ml = minLength;
-
-        for (let bend=0; bend < bends; bend++)
-        {
-            for (let i=0; i < 2; i++) {
-                dir = -dir;
-                sequence += `D:${ll}|T:${dir*angle}|D:${ml}|T:${dir*angle}|`;            
-            }
-        
-        }
-
-        sequence = sequence + "S:4|"; // scale to original
-
-    return sequence;
-}
 
 /**
  * Replace a function type (e.g. 'D') in the function map with a new sequence.
@@ -214,29 +169,34 @@ export function replaceFunctionsInMap(functionNames, functionArray, replacementA
     //  arg: args     // number, object, string
     // }
     
-    let matcherString = "";
+    const matches = [];
     for (const f of functionNames) {
-        matcherString += `^${f}$|`;
+        matches.push(`^(${f})$`);
     }
-    const matcher = new RegExp(matcherString.slice(0,matcherString.length-1), "i"); // cut off end | of string
+    const matcherString = matches.join('|');
 
+    const matcher = new RegExp(matcherString, "i"); // cut off end | of string
+    //console.log(matcher);
+    //console.log(matcherString);
+    
     let i=-1;
 
-    while (i < functionArray.length-1) {
-        i++;
+    while (++i < functionArray.length-1) {
+
         const currentFunc = functionArray[i];
-
+        //console.log(`currentFunc.name: ${currentFunc.name}`);
         if (matcher.test(currentFunc.name)) {
-            //console.info(currentFunc.name);
-            //console.log(`match: ${i} :: ${replacementArray.length}`);
-        //     // swap out thingie
-        //     // TODO: slice and join!!!!!
+            //console.info(`Matched: ${currentFunc.name}`);
+            //console.log(`match index: ${i} :: replacement length: ${replacementArray.length}`);
+            
             const array1 = functionArray.slice(0,i);
+            //console.log(array1);
             const array2 = functionArray.slice(i+1);
+            //console.log(array2);            
+            functionArray = array1.concat(replacementArray).concat(array2);
 
-            functionArray = array1.concat(replacementArray).concat(array2); 
-        //     //functionArray.splice(i,1,replacementArray);
-            i += replacementArray.length; // update to 
+            i += replacementArray.length - 1; // update to length minus this replaced func 
+            //console.log(`i now ${i}`);
         }
         
     }
@@ -245,11 +205,15 @@ export function replaceFunctionsInMap(functionNames, functionArray, replacementA
 }
 
 
+/**
+ * Testing function
+ */
 export function testSequences() {
-    const baseSequence = createESequence({bends:2});
+    //const baseSequence = createESequence({bends:2});
+    const baseSequence = "D:2|D2:3|t:3|D:1";
     let funcMap = parseSequenceToMap(baseSequence);
 
-    const replaceSequence = createEReplaceSequence();
+    const replaceSequence = "E:1|F:4|D:8";
     const replaceMap = parseSequenceToMap(replaceSequence);
 
     // replace D (draw) with subsequence
@@ -260,10 +224,7 @@ export function testSequences() {
     console.info(`replacement function map:`);
     console.info(replaceMap);
 
-    funcMap = replaceFunctionsInMap(['D'], funcMap, replaceMap);
+    funcMap = replaceFunctionsInMap(['D', 'D2'], funcMap, replaceMap);
     console.log(`Function map now:`);
     console.info(funcMap);
-
-    
-
 }

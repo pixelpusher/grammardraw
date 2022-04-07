@@ -44,7 +44,7 @@ const moveAnt = (ant, functionMap, functionSequence) => {
 
         try {
             //console.info(functionMap[result.name].type);
-            moved = func(ant, eval(result.arg));
+            moved = func(ant, result.arg);
         }
         catch (err) 
         {

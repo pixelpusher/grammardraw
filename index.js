@@ -18,12 +18,14 @@ window.addEventListener('load', (event) => {
     testSequences();
 
 
-    const drawing = SVG().addTo('#svg-holder').size('90%', '100%');
+    const drawing = SVG().addTo('#svg-holder').size('90%', '80%');
     const drawGroup = drawing.group();
+    const pointsGroup = drawing.group();
+
 
     //console.log(drawing.node.clientHeight);
-    let w = drawing.node.clientWidth;
-    let h = drawing.node.clientHeight;
+    let w = drawing.node.clientWidth*0.9;
+    let h = drawing.node.clientHeight*0.8;
 
     console.info('w/h:' + w + '/' + h);
 
@@ -53,15 +55,18 @@ window.addEventListener('load', (event) => {
     
     const animatingInput = document.querySelector('input[id="animate"]');
     
+    /**
+     * All important mapping of draw functions to sequence symbols (D, D2, T, etc.)
+     */
     const functionMap = {
         'D': {
             "type": "main",
             "function": (ant, arg) => {  
                 let moved = [];
-                const scaledMove = arg*ant.scale;
+                const scaledMove = Number(arg)*ant.scale;
                 const angleRadians = d2r(ant.angle);
                 
-                //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
+                console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
                 //console.log(ant);
 
                 // move from current position to new position in the current direction by number of cells specified in cmd
@@ -71,7 +76,7 @@ window.addEventListener('load', (event) => {
                 newy =  ant.y + Math.round(scaledMove * Math.sin(angleRadians));
 
                 // move or die
-                if (grid.get(newx, newy) === Grid.EMPTY) {
+                //if (grid.get(newx, newy) === Grid.EMPTY) {
                     if ((ant.x !== newx) || (ant.y !== newy)) {
                         moved = [newx, newy];
 
@@ -88,10 +93,10 @@ window.addEventListener('load', (event) => {
                         ant.path[ant.currentLife] = [newx, newy];
                         //console.log(ant.path);
                     }
-                } else {
-                    console.log(`Ant hit edge or cell: ${newx}:${newy}`);
-                    //ant.alive = false;
-                }
+                // } else {
+                //     console.log(`Ant hit edge or cell going towards (${newx},${newy})`);
+                //     //ant.alive = false;
+                // }
                 return moved; // moved
             }
         },
@@ -100,9 +105,9 @@ window.addEventListener('load', (event) => {
             "type": "turn",
             "function":
                 (ant, arg) => {// rotate internal angle only
-                // console.info(`T move ${arg}`);
+                console.info(`T move ${arg}`);
 
-                ant.angle += arg;
+                ant.angle += Number(arg);
                 return [];
             }
         },
@@ -111,14 +116,34 @@ window.addEventListener('load', (event) => {
             "type": "scale",
             "function": (ant, arg) => {// set scaling factor for draw operations
                 let infoString = `S by ${arg} from ${ant.scale} `;
-                ant.scale *= arg;
+                ant.scale *= Number(arg);
                 infoString = infoString + `to ${ant.scale}`;
                 //console.info(infoString);
 
                 return [];
             }
+        },
+        'C' : {
+            "type": "color",
+            "function": (ant, arg) => {// set scaling factor for draw operations
+                
+                const c1 = `hsl(100,80%,40%)`;
+                const c2 = `hsl(280,80%,40%)`;
+                const c3 = `hsl(340,80%,40%)`;
+                const c4 = `hsl(40,80%,40%)`;
+
+                const infoString = `C ${arg} :: ${eval(arg)}`;
+                
+                ant.line.attr({stroke: eval(arg)});
+
+                console.info(infoString);
+
+                return [];
+            }
         }
     };
+
+    functionMap.D2 = functionMap.D; // synonym, but D2's aren't replaced when iterated
 
 
     //
@@ -160,7 +185,7 @@ window.addEventListener('load', (event) => {
 
             let timeDiff = Date.now() - then;
 
-            if (timeDiff > 40) {
+            if (timeDiff > 80) {
                 then = Date.now();
                 draw();
             }            
@@ -174,7 +199,7 @@ window.addEventListener('load', (event) => {
      * @returns Array[2]
      */
     function gridPosToWorld(pos, g) {
-        const offsetx = 0.05;
+        const offsetx = 0.02;
         let x = w*(offsetx + (1-offsetx)*pos[0]/grid.width);
         let y = h*(offsetx + (1-offsetx)*pos[1]/grid.height);
         return [x,y];
@@ -185,6 +210,8 @@ window.addEventListener('load', (event) => {
      */
     function setup()
     {
+        console.info("SETUP----------------");
+
         // gridDrawings.map(g => {
         //     g.grid.clear();
         //     g.ants.map( a => a.line.remove());
@@ -193,21 +220,70 @@ window.addEventListener('load', (event) => {
         // });
         // gridDrawings = [];
 
-        if (!grid) grid = new Grid(dims[0], dims[1] );
-        
+        if (!grid) {
+            grid = new Grid(dims[0], dims[1] );
+            
+            for (let row=0; row < dims[0]; row++) {
+                for (let col=0; col < dims[1]; col++) {
+                    const pos = gridPosToWorld([row,col],grid);    
+                    if (col % 4 == 0 && row % 4 == 0)
+                    {
+                        pointsGroup.circle(2).attr({
+                            cx: pos[0],
+                            cy:pos[1],
+                            stroke:'none',
+                            fill:`hsl(0,0%,60%)`
+                        });
+                    }
+                }
+            }
+        }
+
+
         if (!ant) 
         {
             console.info("setting up ant");
 
-            // create initial sequence string, and corresponding turn-by-turn function map
-            antSequence = createESequence();
-            antFunctionSequence = parseSequenceToMap(antSequence);
+            const ll = 180;
+            const ml = ll/4;
 
-            const replaceSequence = createEReplaceSequence();
-            const replaceMap = parseSequenceToMap(replaceSequence);
-            antFunctionSequence = replaceFunctionsInMap(['D'], antFunctionSequence, replaceMap);
+            // create initial sequence string, and corresponding turn-by-turn function map
+            antSequence = createESequence({bends:1, 
+                blocksPerRow:2, /* must be even! */
+                rows:2,
+                majLength:ll, 
+                minLength:ml,
+                dir:-1,
+                startAngle:90
+            });
+            
+            antFunctionSequence = parseSequenceToMap(antSequence);
+            console.log(antFunctionSequence);
+
+            const countAll = (funcName, funcArray) =>
+                funcArray.filter(({name}) => name === funcName) 
+                .reduce((sum, current) => sum + 1, 0);
+
+
+            const numDs = countAll('D', antFunctionSequence);
+            console.info(numDs);
+
+
+            // const replaceSequence = createEReplaceSequence({bends:2, 
+            //     majLength:ll,
+            //     minLength:ml,
+            //     dir:1,
+            //     startAngle:-90
+            // });
         
-            ant = new Ant(0,0);
+            // const replaceMap = parseSequenceToMap(replaceSequence);
+        
+            // antFunctionSequence = replaceFunctionsInMap(['D'], antFunctionSequence, replaceMap);
+        
+            // console.log(antFunctionSequence);
+
+        
+            ant = new Ant(dims[0]/20,dims[1]/10);
 
             grid.clear();
             grid.set(ant.x, ant.y, Grid.FULL);
