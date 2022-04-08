@@ -21,9 +21,10 @@ const d2r = (degs) => {
  * Move and ant on a grid, return the last and current points (x0,y0 => x1,y1) if so, otherwise null
  * @param {Ant} ant walker ant object
  * @param {Grid} grid grid to walk on
+ * @param {Object} args Extra arguments to pass on to the function
  * @returns {Array} return the last and current points [[x0,y0], [x1,y1]] if moved, otherwise null 
  */
-const moveAnt = (ant, functionMap, functionSequence) => {
+const moveAnt = (ant, functionMap, functionSequence, args) => {
 
     // each function returned is an object:
     // { 
@@ -44,7 +45,7 @@ const moveAnt = (ant, functionMap, functionSequence) => {
 
         try {
             //console.info(functionMap[result.name].type);
-            moved = func(ant, result.arg);
+            moved = func(ant, result.arg, args);
         }
         catch (err) 
         {

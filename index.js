@@ -2,8 +2,15 @@
 
 import { extendHex, defineGrid } from 'honeycomb-grid';
 import { SVG, extend as SVGextend, Element as SVGElement } from '@svgdotjs/svg.js';
-import { Interval, Note, Scale } from "@tonaljs/tonal";
+import { Note, Interval, Scale } from '@tonaljs/tonal';
+
+import { scaleTranspose } from '@strudel.cycles/tonal';
+
 import * as Tone from 'tone';
+
+import { infiter, numrange, repeat, countto, Vector, makeMapping } from './modules/util/index.js';
+
+import LivePrinter from "./modules/liveprinter.printer.js";
 
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
@@ -12,6 +19,7 @@ import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbe
 
 
 window.addEventListener('load', (event) => {
+
     console.log('page is fully loaded');
 
     const frameIntervalTimeMs = 6000/120;
@@ -29,6 +37,7 @@ window.addEventListener('load', (event) => {
 
     const dims = [600,400]; // dimensions of underlying grid - careful not to make too big!
 
+    // for draw and current animation
     let animating = false;
     let currentAnimation = -1;
 
@@ -59,9 +68,17 @@ window.addEventListener('load', (event) => {
     const functionMap = {
         'D': {
             "type": "main",
-            "function": (ant, arg) => {  
+            "function": (ant, arg, args) => {  
                 let moved = [];
-                const scaledMove = Number(arg)*ant.scale;
+
+                let scaledMove;
+                
+                if (args && args.distance) {
+                    scaledMove = args.distance;
+                } else {
+                    scaledMove = Number(arg)*ant.scale;
+                }
+                
                 const angleRadians = d2r(ant.angle);
                 
                 //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
@@ -102,7 +119,7 @@ window.addEventListener('load', (event) => {
         'T': {
             "type": "turn",
             "function":
-                (ant, arg) => {// rotate internal angle only
+                (ant, arg, args) => {// rotate internal angle only
                 //console.info(`T move ${arg}`);
 
                 ant.angle += Number(arg);
@@ -112,7 +129,7 @@ window.addEventListener('load', (event) => {
 
         'S': {
             "type": "scale",
-            "function": (ant, arg) => {// set scaling factor for draw operations
+            "function": (ant, arg, args) => {// set scaling factor for draw operations
                 let infoString = `S by ${arg} from ${ant.scale} `;
                 ant.scale *= Number(arg);
                 infoString = infoString + `to ${ant.scale}`;
@@ -123,7 +140,7 @@ window.addEventListener('load', (event) => {
         },
         'C' : {
             "type": "color",
-            "function": (ant, arg) => {// set scaling factor for draw operations
+            "function": (ant, arg, args) => {// set scaling factor for draw operations
                 
                 const c1 = `hsl(100,80%,40%)`;
                 const c2 = `hsl(280,80%,40%)`;
@@ -141,11 +158,11 @@ window.addEventListener('load', (event) => {
         },
         'A': {
             "type": "none",
-            "function": (ant, arg) => [] 
+            "function": (ant, arg, args) => [] 
         },
         'B': {
             "type": "none",
-            "function": (ant, arg) => [] 
+            "function": (ant, arg, args) => [] 
         },
     };
 
@@ -164,18 +181,25 @@ window.addEventListener('load', (event) => {
 
     });
 
-    animatingInput.addEventListener('change', (e) => {
+
+    animatingInput.addEventListener('change', async (e) => {
         e.preventDefault();
         //console.log(e.target);
         //console.log('clicked:' +  e.target.checked);
         animating = e.target.checked;
 
+        await Tone.start();
+
         if (animating) {
-            currentAnimation = window.requestAnimationFrame(runAnimations);
+            Tone.Transport.cancel(0); // cancel anything queued
+            Tone.Transport.start();
+            draw();
+            //currentAnimation = window.requestAnimationFrame(runAnimations);
             //console.log(animating);
         }
         else {
-            window.cancelAnimationFrame(currentAnimation);
+            Tone.Transport.pause();
+            //window.cancelAnimationFrame(currentAnimation);
             //console.log('stopped ' + animating);
         }
     });
@@ -324,23 +348,43 @@ window.addEventListener('load', (event) => {
 
 
     let readyToDraw = false; // true when finished moving
-    let notesSequence = Scale.get("c3 pentatonic").notes.concat(Scale.get("c4 pentatonic").notes);
+    let notesSequence = Scale.get("c3 pentatonic").notes;
     let currentNoteIndex = 0;
 
+    const lp = new LivePrinter(); // liveprinter instance
+
     function draw() {
+        //if (Tone.Transport._clock.getStateAtTime() !== "started") return;
+
         let moves = 0;
         let didItActuallyMove = true;
         
         // let currentNote = 
 
-        while (antFunctionSequence.length > 0 && didItActuallyMove)    
+        if (antFunctionSequence.length > 0)    
         {
-            const moved = moveAnt(ant, functionMap, antFunctionSequence);
+
+            const noteString = notesSequence[Math.round(currentNoteIndex*Math.random())];
+            const noteMidi = Note.midi(noteString);
+            const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
+            const noteDuration = (60 / Tone.Transport.bpm.value); // seconds
+            const noteDist = lp.t2mm(noteDuration, noteSpeed)*10*dims[1];
+
+            console.log(`${noteDuration} / ${noteDist}`);
+
+            const moved = moveAnt(ant, functionMap, antFunctionSequence, {distance:noteDist});
+
             didItActuallyMove = (moved.length !== 0);
 
             if (didItActuallyMove)
             {
-                synth.triggerAttackRelease(notesSequence[Math.round(currentNoteIndex*Math.random())], "32n");
+                // schedule draw for after note is finished
+                Tone.Transport.scheduleOnce( (time) => {
+                    draw();   
+                },`+${noteDuration}`);
+                //},`+1b`); // same
+
+                synth.triggerAttackRelease(notesSequence[Math.round(currentNoteIndex*Math.random())], noteDuration);
 
                 currentNoteIndex = (currentNoteIndex + 1) % notesSequence.length;
 
@@ -349,9 +393,10 @@ window.addEventListener('load', (event) => {
                 const scaledPath = ant.path.map(p => gridPosToWorld(p,grid));
                 ant.line = ant.line.plot(scaledPath);
             }
-            moves++;
-         
-            if (moves > 10) break; // safety
+            else {
+                // schedule draw in future, if running:
+                Tone.Transport.scheduleOnce( draw, "+0.01");
+            }
         }
     }
 
