@@ -15,10 +15,10 @@ import LivePrinter from "./modules/liveprinter.printer.js";
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
 import { d2r, moveAnt, createAnt, removeAntTrace } from "./modules/antgrid-api";
-import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbertSequence, hilbertReplacements, testSequences } from "./modules/sequences.js";
+import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbertSequence, hilbertReplacements, createECurve, eCurveReplacements, testSequences } from "./modules/sequences.js";
 
 
-window.addEventListener('load', (event) => {
+window.addEventListener('load', async (event) => {
 
     console.log('page is fully loaded');
 
@@ -167,6 +167,8 @@ window.addEventListener('load', (event) => {
     };
 
     functionMap.D2 = functionMap.D; // synonym, but D2's aren't replaced when iterated
+    functionMap.DR = functionMap.D; // synonym, for ECurve
+    functionMap.DL = functionMap.D; // synonym, for ECurve
 
 
     //
@@ -190,9 +192,13 @@ window.addEventListener('load', (event) => {
 
         await Tone.start();
 
+
         if (animating) {
             Tone.Transport.cancel(0); // cancel anything queued
+            
             Tone.Transport.start();
+            Tone.Transport.bpm.rampTo(180,0.1);
+
             draw();
             //currentAnimation = window.requestAnimationFrame(runAnimations);
             //console.log(animating);
@@ -238,7 +244,7 @@ window.addEventListener('load', (event) => {
     /**
      * Set up grids etc.
      */
-    function setup()
+    async function setup()
     {
         console.info("SETUP----------------");
 
@@ -329,11 +335,26 @@ window.addEventListener('load', (event) => {
                 hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbertIter1);
             }
 
-            //console.log('HILBERT');
-            //console.log(hilbertIter1);
+            const eIters = 2;
+
+            let eCurve = [];
+            try {
+                eCurve = parseSequenceToMap(createECurve());
+            }   catch (err) {
+                console.error(err);
+            }
+            console.log(eCurve);
+            
+            const eCurveReps = eCurveReplacements(0.1*dims[0]/eIters);
+            let eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurve);
+
+            await repeat(eIters, async (i) => eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurveIter1));
+
+            console.log('ECurve');
+            console.log(eCurveIter1);
 
 
-            antFunctionSequence = hilbertIter1;
+            antFunctionSequence = eCurveIter1;
         
             ant = new Ant(0,dims[1]);
 
@@ -347,7 +368,6 @@ window.addEventListener('load', (event) => {
     }
 
 
-    let readyToDraw = false; // true when finished moving
     let notesSequence = Scale.get("c3 pentatonic").notes;
     let currentNoteIndex = 0;
 
@@ -367,8 +387,8 @@ window.addEventListener('load', (event) => {
             const noteString = notesSequence[Math.round(currentNoteIndex*Math.random())];
             const noteMidi = Note.midi(noteString);
             const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
-            const noteDuration = (60 / Tone.Transport.bpm.value); // seconds
-            const noteDist = lp.t2mm(noteDuration, noteSpeed)*10*dims[1];
+            const noteDuration = (60 / Tone.Transport.bpm.value)/8; // eighth note seconds
+            const noteDist = lp.t2mm(noteDuration, noteSpeed)*100*dims[1];
 
             console.log(`${noteDuration} / ${noteDist}`);
 
@@ -386,7 +406,11 @@ window.addEventListener('load', (event) => {
 
                 synth.triggerAttackRelease(notesSequence[Math.round(currentNoteIndex*Math.random())], noteDuration);
 
-                currentNoteIndex = (currentNoteIndex + 1) % notesSequence.length;
+                //currentNoteIndex = (currentNoteIndex + 1) % (notesSequence.length;
+                
+                //currentNoteIndex = (currentNoteIndex+1) % 2;
+
+                currentNoteIndex = 1;
 
                 //const infoBox = document.getElementById('info');
                 //infoBox.innerHTML += '<br/>' + gridPosToWorld(moved,grid);
@@ -404,6 +428,6 @@ window.addEventListener('load', (event) => {
 
     window.addEventListener('resize', resize);
 
-    setup();
+    await setup();
 });
 

@@ -67,7 +67,7 @@ export function parseSequenceToMap(sequence) {
 
 export function createHilbertSequence()
 {
-    const sequence = "A";
+    const sequence = "A:0";
     return sequence;
 }
 
@@ -82,6 +82,55 @@ export function hilbertReplacements(sideLength) {
         {name: 'B', sequence:parseSequenceToMap(BMap) }
     ];
 }
+
+
+/**
+ * Douglas McKenna's E-sequence
+ * @returns {String} 1-st level Hilbert string
+ */
+export function createECurve()
+{
+    const sequence = "DL:0";
+    return sequence;
+}
+/**
+ * 
+ * @param {Number} sideLength 
+ * @returns 
+ */
+export function eCurveReplacements(sideLength) {
+    const l = sideLength; // brevity
+    const DLMap = `T:-90|DR:${l}|DR:${l}|T:90|DL:${l}|T:90|DL:${l}|T:-90|DR:${l}|T:-90|DR:${l}|DL:${l}|T:-90|DR:${l}|T:90|DL:${l}|DL:${l}|T:90|DR:${l}|T:90|DL:${l}|T:-90|DR:${l}|DL:${l}|DL:${l}|T:90|DR:${l}|T:90|DL:${l}|DR:${l}|T:-90|DR:${l}|T:-90|DL:${l}|T:90|DL:${l}|T:90|DR:${l}|T:-90|DR:${l}|T:-90|DL:${l}|DL:${l}`;
+
+    const DRMap = `DR:${l}|DR:${l}|T:90|DL:${l}|T:90|DL:${l}|T:-90|DR:${l}|T:-90|DR:${l}|T:90|DL:${l}|T:90|DL:${l}|DR:${l}|T:-90|DL:${l}|T:-90|DR:${l}|DR:${l}|DL:${l}|T:90|DR:${l}|T:-90|DL:${l}|T:-90|DR:${l}|DR:${l}|T:-90|DL:${l}|T:90|DR:${l}|DL:${l}|T:90|DL:${l}|T:90|DR:${l}|T:-90|DR:${l}|T:-90|DL:${l}|DL:${l}|T:90`;
+
+    const retVal = [];
+
+    try 
+    {
+        const DLSeq = parseSequenceToMap(DLMap);
+        retVal.push({name: 'DL', sequence: DLSeq});
+    }
+    catch (err) {
+        console.error("DLMap");
+        console.error(DLMap);
+        console.error(err);
+    }
+
+    try 
+    {
+        const DRSeq = parseSequenceToMap(DRMap);
+        retVal.push({name: 'DR', sequence: DRSeq});
+    }
+    catch (err) {
+        console.error("DRMap");
+        console.error(DRMap);
+        console.error(err);
+    }
+    
+    return retVal;
+}
+
 
 
 /**
