@@ -2,7 +2,7 @@
 
 import { extendHex, defineGrid } from 'honeycomb-grid';
 import { SVG, extend as SVGextend, Element as SVGElement } from '@svgdotjs/svg.js';
-import { Note, Interval, Scale } from '@tonaljs/tonal';
+import { Note, Interval, Scale, note } from '@tonaljs/tonal';
 
 import { scaleTranspose } from '@strudel.cycles/tonal';
 
@@ -29,13 +29,15 @@ window.addEventListener('load', async (event) => {
     const pointsGroup = drawing.group();
 
 
-    //console.log(drawing.node.clientHeight);
+    console.log(drawing.node.clientHeight);
+    console.log(`${drawing.width()} :: ${drawing.height()}` );
+    
     let w = drawing.node.clientWidth*0.9;
     let h = drawing.node.clientHeight*0.8;
 
     console.info('w/h:' + w + '/' + h);
 
-    const dims = [600,400]; // dimensions of underlying grid - careful not to make too big!
+    const dims = [800,600]; // dimensions of underlying grid - careful not to make too big!
 
     // for draw and current animation
     let animating = false;
@@ -47,6 +49,10 @@ window.addEventListener('load', async (event) => {
 
     //create a synth and connect it to the main output (your speakers)
     const synth = new Tone.Synth().toDestination();
+    const metro = new Tone.Synth().toDestination();
+    const vol = new Tone.Volume(-36).toDestination();
+    metro.connect(vol);
+    
 
     const Hex = extendHex({ size: 4 }); 
     const HexGrid = defineGrid(Hex);
@@ -140,7 +146,7 @@ window.addEventListener('load', async (event) => {
         },
         'C' : {
             "type": "color",
-            "function": (ant, arg, args) => {// set scaling factor for draw operations
+            "function": (ant, arg, args) => {// change stroke colour
                 
                 const c1 = `hsl(100,80%,40%)`;
                 const c2 = `hsl(280,80%,40%)`;
@@ -179,10 +185,31 @@ window.addEventListener('load', async (event) => {
 
     document.getElementById('play').addEventListener('click', async (event) => {
         //play a middle 'C' for the duration of an 8th note
-        synth.triggerAttackRelease("C4", "8n");
+        metro.triggerAttackRelease("C4", "8n");
 
     });
 
+    let noteMods = [[0,1], [4,2], [0,3], [2,1], [6,1]];
+
+    document.getElementById('mods').addEventListener('keydown', function (keyEvent) {
+        if (keyEvent.code === 'Enter') {
+
+            console.log(this.value);
+
+            let goodValue = null;
+
+            try {
+                goodValue = eval('[' + this.value + ']');
+            }
+            catch (err) {
+                goodValue = false;
+            }
+            if (goodValue)
+            {
+                noteMods = goodValue;
+            }
+        }
+    });
 
     animatingInput.addEventListener('change', async (e) => {
         e.preventDefault();
@@ -192,12 +219,15 @@ window.addEventListener('load', async (event) => {
 
         await Tone.start();
 
-
         if (animating) {
             Tone.Transport.cancel(0); // cancel anything queued
             
             Tone.Transport.start();
-            Tone.Transport.bpm.rampTo(180,0.1);
+            Tone.Transport.bpm.rampTo(80,0.1);
+
+            Tone.Transport.scheduleRepeat( (time) => {
+                metro.triggerAttackRelease("C7", "16n");
+            }, "4n", "0");
 
             draw();
             //currentAnimation = window.requestAnimationFrame(runAnimations);
@@ -248,10 +278,6 @@ window.addEventListener('load', async (event) => {
     {
         console.info("SETUP----------------");
 
-        // setup Tone
-        Tone.Transport.start();
-
-
         //TEST
         testSequences();
         console.log('End test-----------------');
@@ -270,7 +296,7 @@ window.addEventListener('load', async (event) => {
             for (let row=0; row < dims[0]; row++) {
                 for (let col=0; col < dims[1]; col++) {
                     const pos = gridPosToWorld([row,col],grid);    
-                    if (col % 4 == 0 && row % 4 == 0)
+                    if (col % 10 == 9 && row % 10 == 9)
                     {
                         pointsGroup.circle(2).attr({
                             cx: pos[0],
@@ -344,11 +370,12 @@ window.addEventListener('load', async (event) => {
                 console.error(err);
             }
             console.log(eCurve);
-            
-            const eCurveReps = eCurveReplacements(0.1*dims[0]/eIters);
+            let sideLength = 0.5*dims[0]/eIters;
+
+            const eCurveReps = eCurveReplacements(sideLength);
             let eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurve);
 
-            await repeat(eIters, async (i) => eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurveIter1));
+            await repeat(eIters-1, async (i) => eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurveIter1));
 
             console.log('ECurve');
             console.log(eCurveIter1);
@@ -368,58 +395,118 @@ window.addEventListener('load', async (event) => {
     }
 
 
-    let notesSequence = Scale.get("c3 pentatonic").notes;
+    /**
+     * Update ant path and drawn line 
+     * 
+     * @param {Ant} ant 
+     */
+    function updateAntPath(ant) {
+        const scaledPath = ant.path.map(p => gridPosToWorld(p,grid));
+        ant.line = ant.line.plot(scaledPath);
+    }
+
+
+    function playNote(noteFreq, noteDuration, timeOffset, callback)
+    {
+        const nextTime = Tone.Transport.nextSubdivision(noteDuration);                
+
+        // schedule draw for after note is finished
+        Tone.Transport.scheduleOnce( (time) => {
+            synth.triggerAttackRelease(noteFreq, noteDuration);
+
+            callback();   
+        },`+${(timeOffset+noteDuration).toFixed(2)}`);
+
+        //console.log(`current vs. nextTime:${Tone.immediate()}/${nextTime}`);
+    }
+
+    let baseScale = Scale.get("c2 pentatonic");
+    let notesSequence = baseScale.notes;
     let currentNoteIndex = 0;
 
     const lp = new LivePrinter(); // liveprinter instance
 
+    // maps printer y coords to grid y
+    const printermap = makeMapping([0,lp.maxy], [0,dims[1]]);
+
+
+    /**
+     * MAIN DRAWING FUNCTION
+     */
     function draw() {
-        //if (Tone.Transport._clock.getStateAtTime() !== "started") return;
 
-        let moves = 0;
-        let didItActuallyMove = true;
-        
-        // let currentNote = 
-
-        if (antFunctionSequence.length > 0)    
+        if (animating && antFunctionSequence.length > 0)    
         {
 
-            const noteString = notesSequence[Math.round(currentNoteIndex*Math.random())];
-            const noteMidi = Note.midi(noteString);
-            const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
-            const noteDuration = (60 / Tone.Transport.bpm.value)/8; // eighth note seconds
-            const noteDist = lp.t2mm(noteDuration, noteSpeed)*100*dims[1];
 
-            console.log(`${noteDuration} / ${noteDist}`);
+            // apply functions until we hit a 'main' function and get results
 
-            const moved = moveAnt(ant, functionMap, antFunctionSequence, {distance:noteDist});
-
-            didItActuallyMove = (moved.length !== 0);
-
-            if (didItActuallyMove)
+            while (antFunctionSequence.length > 0)
             {
-                // schedule draw for after note is finished
-                Tone.Transport.scheduleOnce( (time) => {
-                    draw();   
-                },`+${noteDuration}`);
-                //},`+1b`); // same
+                const funcInfo = antFunctionSequence.shift();
+                const functionType = functionMap[funcInfo.name].type;
+                const funcBody = functionMap[funcInfo.name].function;
+                const funcArgs = funcInfo.arg;
 
-                synth.triggerAttackRelease(notesSequence[Math.round(currentNoteIndex*Math.random())], noteDuration);
+                try {
 
-                //currentNoteIndex = (currentNoteIndex + 1) % (notesSequence.length;
+                    const noteBaseDuration = Tone.Time("8n").toSeconds(); // note seconds
+
+
+                    if (functionType == "main") { // draw function
+
+                        //const noteMods = [[0,1], [4,2], [0,3], [2,1], [6,1]]; // [note shift, duration]
+
+                        let currentTotalDuration = 0;
+
+                        noteMods.forEach((n, i) =>{
+                            const noteString = notesSequence[n[0] % notesSequence.length];
+                            const noteMidi = Note.midi(noteString);
+                            const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
+                            const noteDuration = n[1]*noteBaseDuration; // note seconds
+                            const noteDist = lp.t2mm(noteDuration*1000, noteSpeed);
                 
-                //currentNoteIndex = (currentNoteIndex+1) % 2;
+                            // convert note distance on printer bed to screen grid distance
+                            const actualNoteDist = Math.round(printermap(noteDist));
+                            
+                            //console.log(`note length vs screen: ${noteDist}/${actualNoteDist}`);
+            
 
-                currentNoteIndex = 1;
+                            //console.info(functionMap[result.name].type);
+                            // moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
+                            
+                            const callback = (i === (noteMods.length-1)) ? ()=>{ 
+                                moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
+                                updateAntPath(ant); // on screen
+                                draw();
+                            } : ()=>{
+                                moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
+                                updateAntPath(ant); // on screen
+                            }; 
+                            
+                            // PLAY NOTE for full duration with callback
+                            playNote(noteString, noteDuration, currentTotalDuration, callback);
+                            currentTotalDuration += noteDuration;
+                            
+                        });
+                        //currentNoteIndex = (currentNoteIndex + 1) % (notesSequence.length;
+                        //currentNoteIndex = (currentNoteIndex+1) % 2;
 
-                //const infoBox = document.getElementById('info');
-                //infoBox.innerHTML += '<br/>' + gridPosToWorld(moved,grid);
-                const scaledPath = ant.path.map(p => gridPosToWorld(p,grid));
-                ant.line = ant.line.plot(scaledPath);
-            }
-            else {
-                // schedule draw in future, if running:
-                Tone.Transport.scheduleOnce( draw, "+0.01");
+                        // done drawing for this round! -------
+                        break; 
+
+                    }
+                    else {
+                        // other function like colour etc.
+
+                        moved = funcBody(ant, funcArgs);
+                    }
+
+                }
+                catch (err) 
+                {
+                    console.error(err);
+                }
             }
         }
     }
