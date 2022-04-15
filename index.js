@@ -15,7 +15,19 @@ import LivePrinter from "./modules/liveprinter.printer.js";
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
 import { d2r, moveAnt, createAnt, removeAntTrace } from "./modules/antgrid-api";
-import { parseSequenceToMap, createESequence, replaceFunctionsInMap, createHilbertSequence, hilbertReplacements, createECurve, eCurveReplacements, testSequences } from "./modules/sequences.js";
+import { 
+    countAll,
+    parseSequenceToMap, 
+    createESequence, 
+    replaceFunctionsInMap, 
+    createHilbertSequence, 
+    hilbertReplacements, 
+    createECurve, 
+    eCurveReplacements, 
+    testSequences, 
+    createSierpinskiArrowHeadSequence,
+    SierpinskiArrowHeadReplacements
+ } from "./modules/sequences.js";
 
 
 window.addEventListener('load', async (event) => {
@@ -49,9 +61,8 @@ window.addEventListener('load', async (event) => {
 
     //create a synth and connect it to the main output (your speakers)
     const synth = new Tone.Synth().toDestination();
-    const metro = new Tone.Synth().toDestination();
+    const metro = new Tone.AMSynth().toDestination();
     const vol = new Tone.Volume(-36).toDestination();
-    metro.connect(vol);
     
 
     const Hex = extendHex({ size: 4 }); 
@@ -80,7 +91,7 @@ window.addEventListener('load', async (event) => {
                 let scaledMove;
                 
                 if (args && args.distance) {
-                    scaledMove = args.distance;
+                    scaledMove = args.distance*Number(arg);
                 } else {
                     scaledMove = Number(arg)*ant.scale;
                 }
@@ -172,9 +183,8 @@ window.addEventListener('load', async (event) => {
         },
     };
 
-    functionMap.D2 = functionMap.D; // synonym, but D2's aren't replaced when iterated
-    functionMap.DR = functionMap.D; // synonym, for ECurve
-    functionMap.DL = functionMap.D; // synonym, for ECurve
+    functionMap.DR = functionMap.D; // synonym, for ECurve etc.
+    functionMap.DL = functionMap.D; // synonym, for ECurve etc.
 
 
     //
@@ -185,16 +195,14 @@ window.addEventListener('load', async (event) => {
 
     document.getElementById('play').addEventListener('click', async (event) => {
         //play a middle 'C' for the duration of an 8th note
-        metro.triggerAttackRelease("C4", "8n");
-
+        metro.volume.value = -36;
+        metro.triggerAttackRelease("C4", 0.01);
     });
 
     let noteMods = [[0,1], [4,2], [0,3], [2,1], [6,1]];
 
     document.getElementById('mods').addEventListener('keydown', function (keyEvent) {
         if (keyEvent.code === 'Enter') {
-
-            console.log(this.value);
 
             let goodValue = null;
 
@@ -226,7 +234,8 @@ window.addEventListener('load', async (event) => {
             Tone.Transport.bpm.rampTo(80,0.1);
 
             Tone.Transport.scheduleRepeat( (time) => {
-                metro.triggerAttackRelease("C7", "16n");
+                metro.volume.value = -20;
+                metro.triggerAttackRelease("C7", "32n");            
             }, "4n", "0");
 
             draw();
@@ -314,11 +323,12 @@ window.addEventListener('load', async (event) => {
         {
             console.info("setting up ant");
 
-            const ll = 180;
-            const ml = ll/4;
+            const ll = 10;
+            const ml = ll/2;
+
 
             // create initial sequence string, and corresponding turn-by-turn function map
-            antSequence = createESequence({bends:1, 
+            let eSequence = createESequence({bends:1, 
                 blocksPerRow:2, /* must be even! */
                 rows:2,
                 majLength:ll, 
@@ -327,41 +337,26 @@ window.addEventListener('load', async (event) => {
                 startAngle:90
             });
             
-            antFunctionSequence = parseSequenceToMap(antSequence);
-            console.log(antFunctionSequence);
-
-            const countAll = (funcName, funcArray) =>
-                funcArray.filter(({name}) => name === funcName) 
-                .reduce((sum, current) => sum + 1, 0);
+            let eFunctionSequence = parseSequenceToMap(eSequence);
+ //           console.log(antFunctionSequence);
 
 
-            const numDs = countAll('D', antFunctionSequence);
-            console.info(numDs);
 
 
-            // const replaceSequence = createEReplaceSequence({bends:2, 
-            //     majLength:ll,
-            //     minLength:ml,
-            //     dir:1,
-            //     startAngle:-90
-            // });
-        
-            // const replaceMap = parseSequenceToMap(replaceSequence);
-        
-            // antFunctionSequence = replaceFunctionsInMap(['D'], antFunctionSequence, replaceMap);
-        
-            // console.log(antFunctionSequence);
+            //--- Hilbert Curve --------------
 
-            const hilbertIters = 4;
+            const hilbertIters = 3;
             const hilbert = parseSequenceToMap(createHilbertSequence());
-            const hilbertReps = hilbertReplacements(dims[0]/(Math.pow(2,hilbertIters+2)));
+            const hilbertReps = hilbertReplacements(dims[1]/(Math.pow(2,hilbertIters+2)));
 
-            let hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbert);
+            let hilbertIterated = replaceFunctionsInMap(hilbertReps, hilbert);
             for (let i=0; i<hilbertIters; i++) {
-                hilbertIter1 = replaceFunctionsInMap(hilbertReps, hilbertIter1);
+                hilbertIterated = replaceFunctionsInMap(hilbertReps, hilbertIterated);
             }
 
-            const eIters = 2;
+            //--- Douglas McKenna's E-Curve --------------
+
+            let eIters = 1; // iterations
 
             let eCurve = [];
             try {
@@ -370,20 +365,52 @@ window.addEventListener('load', async (event) => {
                 console.error(err);
             }
             console.log(eCurve);
-            let sideLength = 0.5*dims[0]/eIters;
+            let sideLength = 1;
 
             const eCurveReps = eCurveReplacements(sideLength);
-            let eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurve);
+            let eCurveIterated = replaceFunctionsInMap(eCurveReps, eCurve);
 
-            await repeat(eIters-1, async (i) => eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurveIter1));
+            await repeat(eIters-1, async (i) => eCurveIter1 = replaceFunctionsInMap(eCurveReps, eCurveIterated));
 
-            console.log('ECurve');
-            console.log(eCurveIter1);
+            //console.log('ECurve:');
+            //console.log(eCurveIterated);
 
 
-            antFunctionSequence = eCurveIter1;
+            //--- Sierpinski Arrow Curve --------------
+
+            let SierpinskiCurve = []; 
+            
+
+            let serpIters = 6; // iterations
+
+            try {
+                SierpinskiCurve = parseSequenceToMap(createSierpinskiArrowHeadSequence());
+            }   catch (err) {
+                console.error(err);
+            }
+
+            sideLength = 1;
+
+            const sierpCurveReps = SierpinskiArrowHeadReplacements(sideLength);
+            let sierpIterated = replaceFunctionsInMap(sierpCurveReps, SierpinskiCurve);
+
+            await repeat(serpIters-1, async (i) => sierpIterated = replaceFunctionsInMap(sierpCurveReps, sierpIterated));
+
+            //console.log('SierpinskiCurve:');
+            //console.log(sierpIterated);
+
+            /// END CURVE generators --------------------------------
+
+            //antFunctionSequence = sierpIterated; // choose a curve
         
-            ant = new Ant(0,dims[1]);
+            antFunctionSequence = eFunctionSequence;
+
+            const numDs = countAll(['DL','DR'], antFunctionSequence);
+            console.info(`counted ${numDs} of ${['DL','DR']} in sequence` );
+
+            ////----------------------------------------------------
+
+            ant = new Ant(0,dims[1]-1);
 
             grid.clear();
             grid.set(ant.x, ant.y, Grid.FULL);
@@ -423,6 +450,9 @@ window.addEventListener('load', async (event) => {
     let baseScale = Scale.get("c2 pentatonic");
     let notesSequence = baseScale.notes;
     let currentNoteIndex = 0;
+    const noteBaseDuration = Tone.Time("8n").toSeconds(); // note seconds
+
+    console.log(`Each note is ${noteBaseDuration}s long`);
 
     const lp = new LivePrinter(); // liveprinter instance
 
@@ -449,9 +479,6 @@ window.addEventListener('load', async (event) => {
                 const funcArgs = funcInfo.arg;
 
                 try {
-
-                    const noteBaseDuration = Tone.Time("8n").toSeconds(); // note seconds
-
 
                     if (functionType == "main") { // draw function
 

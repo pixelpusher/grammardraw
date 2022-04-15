@@ -8,8 +8,6 @@
  */
 import Ant from "./ant.js";
 import Grid from "./grid.js";
-import nearley  from "nearley";
-import grammar from "../grammar.js";
 
 
 const d2r = (degs) => {
@@ -54,6 +52,7 @@ const moveAnt = (ant, functionMap, functionSequence, args) => {
     }
     return moved;
 }; // end move
+
 
 
 /**

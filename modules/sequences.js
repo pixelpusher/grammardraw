@@ -3,6 +3,23 @@ import { isArray } from "tone";
 import grammar from "../grammar.js";
 
 /**
+ * Counts all occurences of functions in a sequence
+ * 
+ * @param {Array or string} funcName Names of functions to count, as an array or a single string
+ * @param {Array} funcArray Array of functions  
+ * @returns {Integer} count of function occurences
+ */
+export function countAll (funcName, funcArray) {
+return funcArray.filter(
+        ({name}) => {
+            //console.log(name);
+            return (Array.isArray(funcName) ? funcName.includes(name) : name === funcName)
+        }
+    ) 
+    .reduce((sum, current) => sum + 1, 0);
+}
+
+/**
  * 
  * @param {string} sequence The string representation of the sequence to turn into a an array of functions 
  * @returns {Array} Keys mapping to drawing functions: each entry is an object:
@@ -64,13 +81,47 @@ export function parseSequenceToMap(sequence) {
     return functionSequenceMap;
 }
 
+/**
+ * Classic SierpinskiArrowHead curve
+ * @returns {String} 1-st level SierpinskiArrowHead l-system string
+ */
+ export function createSierpinskiArrowHeadSequence()
+ {
+    const sequence = "DR:0";
+    return sequence;
+ }
+ 
+ /**
+  * Generate replacements for SierpinskiArrowHead L-system
+  * @param {Number} sideLength Length of a segment 
+  * @returns {Array} replacement map for SierpinskiArrowHead l-system
+  */
+ export function SierpinskiArrowHeadReplacements(sideLength) {
+    const DRMap = `T:-60|DL:${sideLength}|T:60|DR:${sideLength}|T:60|DL:${sideLength}|T:-60|`;
+    const DLMap = `T:60|DR:${sideLength}|T:-60|DL:${sideLength}|T:-60|DR:${sideLength}|T:60|`;
+    
+    return [
+        {name: 'DL', sequence:parseSequenceToMap(DLMap) },
+        {name: 'DR', sequence:parseSequenceToMap(DRMap) }
+    ];
+ }
+ 
 
+/**
+ * Classic Hilbert curve
+ * @returns {String} 1-st level hilbert l-system string
+ */
 export function createHilbertSequence()
 {
     const sequence = "A:0";
     return sequence;
 }
 
+/**
+ * Generate replacements for Hilbert L-system
+ * @param {Number} sideLength Length of a segment 
+ * @returns {Array} replacement map for hilbert l-system
+ */
 export function hilbertReplacements(sideLength) {
     // const AMap = `S:0.5|T:-90|B|D:${sideLength}|T:90|A|D:${sideLength}|A|T:90|D:${sideLength}|B|T:-90|S:2|`;
     // const BMap = `S:0.5|T:90|A|D:${sideLength}|T:-90|B|D:${sideLength}|B|T:-90|D:${sideLength}|A|T:90|S:2|`;
@@ -86,7 +137,7 @@ export function hilbertReplacements(sideLength) {
 
 /**
  * Douglas McKenna's E-sequence
- * @returns {String} 1-st level Hilbert string
+ * @returns {String} 1-st level E-sequence l-system string
  */
 export function createECurve()
 {
@@ -94,9 +145,9 @@ export function createECurve()
     return sequence;
 }
 /**
- * 
- * @param {Number} sideLength 
- * @returns 
+ * Generate replacements for E-curve L-system
+ * @param {Number} sideLength Length of a side, in mm (or pixels) 
+ * @returns {Array} replacement operations for e-curve
  */
 export function eCurveReplacements(sideLength) {
     const l = sideLength; // brevity
@@ -134,7 +185,7 @@ export function eCurveReplacements(sideLength) {
 
 
 /**
- * Create the 'E' sequence string
+ * Create the 'E' sequence string inspired by Vera Molnar
  * @returns {String} sequence as string
  */
 export function createESequence({
@@ -198,12 +249,12 @@ export function createESequence({
         {
             for (let i=0; i < 2; i++) {
                 dir = -dir;
-                sequence += `C:c1|D:${ll}|T:${dir*angle}|D:${ml}|T:${dir*angle}|`;            
+                sequence += `C:c1|DR:${ll}|T:${dir*angle}|DR:${ml}|T:${dir*angle}|`;            
             }
         }
         if (evenBlock) 
         {
-            sequence += `C:c2|D:${ll}|D2:${minLength}|T:${dir*angle}|`;
+            sequence += `C:c2|D:${ll}|DL:${minLength}|T:${dir*angle}|`;
         }
         else 
         {
@@ -212,7 +263,7 @@ export function createESequence({
         if (block > 0 && (block % blocksPerRow === (blocksPerRow-1))) {
             dir = -dir;
             // sequence += `C:c4|T:${dir*angle}|D2:${ll}|D2:${ml}|T:${dir*angle}|`;
-            sequence += `C:c4|T:${dir*angle}|T:${dir*angle}|D2:${ml}|T:${dir*angle}|`;
+            sequence += `C:c4|T:${dir*angle}|T:${dir*angle}|DL:${ml}|T:${dir*angle}|`;
         }
     }
 
