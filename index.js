@@ -42,8 +42,19 @@ window.addEventListener('load', async (event) => {
 
 
     console.log(drawing.node.clientHeight);
-    console.log(`${drawing.width()} :: ${drawing.height()}` );
+    console.log(`w:${drawing.width()} :: h:${drawing.height()}` );
+
+    console.log(Scale.scaleNotes(["F#5","D5", "B4", "G4", "Bb4", "B4", "A4"]));
+
     
+    console.log(Scale.scaleNotes(["F#5","D5"]));
+
+
+    console.log(Scale.scaleNotes(["B4", "G4"]));
+
+    console.log(Scale.scaleNotes(["B4", "A4"]));
+
+
     let w = drawing.node.clientWidth*0.9;
     let h = drawing.node.clientHeight*0.8;
 
@@ -53,16 +64,16 @@ window.addEventListener('load', async (event) => {
 
     // for draw and current animation
     let animating = false;
-    let currentAnimation = -1;
 
     let then = 0; // last draw function call
     let ant = null;
     let grid = null;
 
+    let sequenceLength = 0; // length of draw/main functions in current sequence, for reference
+
     //create a synth and connect it to the main output (your speakers)
     const synth = new Tone.Synth().toDestination();
     const metro = new Tone.AMSynth().toDestination();
-    const vol = new Tone.Volume(-36).toDestination();
     
 
     const Hex = extendHex({ size: 4 }); 
@@ -199,7 +210,7 @@ window.addEventListener('load', async (event) => {
         metro.triggerAttackRelease("C4", 0.01);
     });
 
-    let noteMods = [[0,1], [4,2], [0,3], [2,1], [6,1]];
+    let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
 
     document.getElementById('mods').addEventListener('keydown', function (keyEvent) {
         if (keyEvent.code === 'Enter') {
@@ -405,9 +416,6 @@ window.addEventListener('load', async (event) => {
         
             antFunctionSequence = eFunctionSequence;
 
-            const numDs = countAll(['DL','DR'], antFunctionSequence);
-            console.info(`counted ${numDs} of ${['DL','DR']} in sequence` );
-
             ////----------------------------------------------------
 
             ant = new Ant(0,dims[1]-1);
@@ -419,6 +427,11 @@ window.addEventListener('load', async (event) => {
                 .fill('none')
                 .attr({stroke: 'hsl(100,80%,40%)', 'stroke-width': 2});
         }
+
+        sequenceLength = countAll(['DL','DR'], antFunctionSequence);
+        console.info(`counted ${sequenceLength} of ${['DL','DR']} in sequence` );
+        document.getElementById('segs').innerHTML = `${sequenceLength}`;
+
     }
 
 
@@ -435,7 +448,7 @@ window.addEventListener('load', async (event) => {
 
     function playNote(noteFreq, noteDuration, timeOffset, callback)
     {
-        const nextTime = Tone.Transport.nextSubdivision(noteDuration);                
+        //const nextTime = Tone.Transport.nextSubdivision(noteDuration);                
 
         // schedule draw for after note is finished
         Tone.Transport.scheduleOnce( (time) => {
@@ -447,18 +460,22 @@ window.addEventListener('load', async (event) => {
         //console.log(`current vs. nextTime:${Tone.immediate()}/${nextTime}`);
     }
 
-    let baseScale = Scale.get("c2 pentatonic");
-    let notesSequence = baseScale.notes;
+    let scales = ["F#", "Bb", "F#", "Bb", "F#", "D", "F#", "Bb", "G", "A"];
+    let notesPlayed = 0;
     let currentNoteIndex = 0;
-    const noteBaseDuration = Tone.Time("8n").toSeconds(); // note seconds
+    let noteBaseDuration = Tone.Time("16n").toSeconds(); // note seconds
 
     console.log(`Each note is ${noteBaseDuration}s long`);
+
+    document.getElementById('bl3').innerHTML = `${noteBaseDuration.toFixed(2)}s`;
 
     const lp = new LivePrinter(); // liveprinter instance
 
     // maps printer y coords to grid y
     const printermap = makeMapping([0,lp.maxy], [0,dims[1]]);
 
+
+    let totalSequenceDuration = 0; // for recording purposes
 
     /**
      * MAIN DRAWING FUNCTION
@@ -467,9 +484,9 @@ window.addEventListener('load', async (event) => {
 
         if (animating && antFunctionSequence.length > 0)    
         {
+            let scale = Scale.get(`${scales[notesPlayed % scales.length]}2 melodic minor`);
 
-
-            // apply functions until we hit a 'main' function and get results
+            // apply functions until we hit a 'main' function and get results  
 
             while (antFunctionSequence.length > 0)
             {
@@ -487,7 +504,7 @@ window.addEventListener('load', async (event) => {
                         let currentTotalDuration = 0;
 
                         noteMods.forEach((n, i) =>{
-                            const noteString = notesSequence[n[0] % notesSequence.length];
+                            const noteString = scale.notes[n[0] % scale.notes.length];
                             const noteMidi = Note.midi(noteString);
                             const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
                             const noteDuration = n[1]*noteBaseDuration; // note seconds
@@ -503,6 +520,7 @@ window.addEventListener('load', async (event) => {
                             // moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
                             
                             const callback = (i === (noteMods.length-1)) ? ()=>{ 
+                                notesPlayed++;
                                 moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
                                 updateAntPath(ant); // on screen
                                 draw();
@@ -514,6 +532,7 @@ window.addEventListener('load', async (event) => {
                             // PLAY NOTE for full duration with callback
                             playNote(noteString, noteDuration, currentTotalDuration, callback);
                             currentTotalDuration += noteDuration;
+                            totalSequenceDuration += noteDuration;
                             
                         });
                         //currentNoteIndex = (currentNoteIndex + 1) % (notesSequence.length;
@@ -536,6 +555,8 @@ window.addEventListener('load', async (event) => {
                 }
             }
         }
+        document.getElementById('cur-time').innerHTML = `${totalSequenceDuration.toFixed(2)}s / min: ${sequenceLength*noteMods.length*noteBaseDuration}`;
+
     }
 
     const resize = setup;
