@@ -248,22 +248,29 @@ export function createESequence({
         for (let bend=0; bend < bends; bend++)
         {
             for (let i=0; i < 2; i++) {
-                dir = -dir;
+                //dir = -dir;
                 sequence += `C:c1|DR:${ll}|T:${dir*angle}|DR:${ml}|T:${dir*angle}|`;            
+                angle = (angle + 180) % 360;
             }
         }
         if (evenBlock) 
         {
+            angle = (180 + angle) % 360;
+
             sequence += `C:c2|D:${ll}|DL:${minLength}|T:${dir*angle}|`;
+            angle = (180 + angle) % 360;
+
         }
-        else 
-        {
-            //sequence += `C:c3|D:${ll}|T:${-dir*angle}|D2:${minLength}|`;
-        }
+        // else 
+        // {
+        //     sequence += `C:c3|D:${ll}|T:${-dir*angle}|D2:${minLength}|`;
+        // }
         if (block > 0 && (block % blocksPerRow === (blocksPerRow-1))) {
-            dir = -dir;
+//            dir = -dir;
+
             // sequence += `C:c4|T:${dir*angle}|D2:${ll}|D2:${ml}|T:${dir*angle}|`;
             sequence += `C:c4|T:${dir*angle}|T:${dir*angle}|DL:${ml}|T:${dir*angle}|`;
+            angle = (180 + angle) % 360;
         }
     }
 

@@ -159,10 +159,10 @@ window.addEventListener('load', async (event) => {
             "type": "color",
             "function": (ant, arg, args) => {// change stroke colour
                 
-                const c1 = `hsl(100,80%,40%)`;
-                const c2 = `hsl(280,80%,40%)`;
-                const c3 = `hsl(340,80%,40%)`;
-                const c4 = `hsl(40,80%,40%)`;
+                const c1 = `hsl(100,80%,40%)`; // green
+                const c2 = `hsl(60,90%,40%)`; // yellow
+                const c3 = `hsl(280,80%,40%)`; // purple
+                const c4 = `hsl(0,80%,50%)`; // red
 
                 const infoString = `C ${arg} :: ${eval(arg)}`;
                 
@@ -328,9 +328,9 @@ window.addEventListener('load', async (event) => {
 
 
             // create initial sequence string, and corresponding turn-by-turn function map
-            let eSequence = createESequence({bends:1, 
+            let eSequence = createESequence({bends:2, 
                 blocksPerRow:2, /* must be even! */
-                rows:2,
+                rows:3,
                 majLength:ll, 
                 minLength:ml,
                 dir:-1,
