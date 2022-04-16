@@ -11,11 +11,11 @@
     <script type="module" src="./index.js"></script>
     <div id="info">stuff:<br/></div>
     <div id="music-info">
-      
+
       <div id="segs-txt">
-        total segments:
+        segment:
       </div>
-      <div id="segs">0</div>
+      <div><span id="cur-seg"></span> / <span id="segs"></span></div>
 
       <div id="beat-length">
         curent time:
@@ -26,6 +26,16 @@
         Beat length:
       </div>
       <div id="bl3">0s</div>
+
+      <div >
+        Note distance:
+      </div>
+      <div id="note-dist">0mm</div>
+
+      <div >
+        Restart:
+      </div>
+      <button id="reset-btn">reset</button>
 
     </div>
     <button id="play">Play</button>

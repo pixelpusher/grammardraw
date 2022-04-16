@@ -3,6 +3,7 @@ body {
   margin: 0;
   padding: 0;
   font-size: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
@@ -57,7 +58,7 @@ label {
   color: rgb(11, 15, 11);
   /* width: -moz-fit-content;
   width: fit-content; */
-  width:20rem;
+  width:24rem;
   padding: 0.875rem 0.4375rem;
   overflow-y: scroll;
   overflow-x: hidden;

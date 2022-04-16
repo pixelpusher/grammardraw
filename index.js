@@ -210,6 +210,11 @@ window.addEventListener('load', async (event) => {
         metro.triggerAttackRelease("C4", 0.01);
     });
 
+
+    document.getElementById('reset-btn').addEventListener('click', function (keyEvent) {
+        setup();
+    });
+
     let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
 
     document.getElementById('mods').addEventListener('keydown', function (keyEvent) {
@@ -330,19 +335,19 @@ window.addEventListener('load', async (event) => {
         }
 
 
-        if (!ant) 
-        {
+        // if (!ant) 
+        // {
             console.info("setting up ant");
 
-            const ll = 10;
+            const ll = 6;
             const ml = ll/2;
 
 
             // create initial sequence string, and corresponding turn-by-turn function map
             let eSequence = createESequence({bends:2, 
                 blocksPerRow:2, /* must be even! */
-                rows:3,
-                majLength:ll, 
+                rows:2,
+                majLength:ll,
                 minLength:ml,
                 dir:-1,
                 startAngle:90
@@ -418,6 +423,11 @@ window.addEventListener('load', async (event) => {
 
             ////----------------------------------------------------
 
+            drawGroup.clear();
+            totalSequenceDuration = 0; // for recording purposes
+            currentSegment = 0;
+            notesPlayed = 0;
+
             ant = new Ant(0,dims[1]-1);
 
             grid.clear();
@@ -426,7 +436,7 @@ window.addEventListener('load', async (event) => {
             ant.line = drawGroup.polyline(gridPosToWorld([ant.x, ant.y],grid))
                 .fill('none')
                 .attr({stroke: 'hsl(100,80%,40%)', 'stroke-width': 2});
-        }
+        // }
 
         sequenceLength = countAll(['DL','DR'], antFunctionSequence);
         console.info(`counted ${sequenceLength} of ${['DL','DR']} in sequence` );
@@ -460,14 +470,14 @@ window.addEventListener('load', async (event) => {
         //console.log(`current vs. nextTime:${Tone.immediate()}/${nextTime}`);
     }
 
-    let scales = ["F#", "Bb", "F#", "Bb", "F#", "D", "F#", "Bb", "G", "A"];
+    //let scales = ["F#4", "Bb3", "F#4", "Bb4", "F#4", "D4", "F#4", "Bb4", "G3", "A3"];
+    let scales = ["F#3", "D3", "F#3", "A3", "F#3", "D3", "G3", "G3"];
     let notesPlayed = 0;
-    let currentNoteIndex = 0;
     let noteBaseDuration = Tone.Time("16n").toSeconds(); // note seconds
 
     console.log(`Each note is ${noteBaseDuration}s long`);
 
-    document.getElementById('bl3').innerHTML = `${noteBaseDuration.toFixed(2)}s`;
+    document.getElementById('bl3').innerHTML = `${noteBaseDuration.toFixed(4)}s`;
 
     const lp = new LivePrinter(); // liveprinter instance
 
@@ -476,6 +486,8 @@ window.addEventListener('load', async (event) => {
 
 
     let totalSequenceDuration = 0; // for recording purposes
+    let currentSegment = 0;
+    
 
     /**
      * MAIN DRAWING FUNCTION
@@ -484,7 +496,7 @@ window.addEventListener('load', async (event) => {
 
         if (animating && antFunctionSequence.length > 0)    
         {
-            let scale = Scale.get(`${scales[notesPlayed % scales.length]}2 melodic minor`);
+            let scale = Scale.get(`${scales[notesPlayed % scales.length]} melodic minor`);
 
             // apply functions until we hit a 'main' function and get results  
 
@@ -503,15 +515,21 @@ window.addEventListener('load', async (event) => {
 
                         let currentTotalDuration = 0;
 
+                        currentSegment++; // moved a segment
+
+                        document.getElementById('cur-seg').innerHTML = `${currentSegment}`;
+
                         noteMods.forEach((n, i) =>{
                             const noteString = scale.notes[n[0] % scale.notes.length];
                             const noteMidi = Note.midi(noteString);
                             const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
                             const noteDuration = n[1]*noteBaseDuration; // note seconds
-                            const noteDist = lp.t2mm(noteDuration*1000, noteSpeed);
+                            const noteDist = lp.t2mm(noteDuration*1000, noteSpeed); 
                 
                             // convert note distance on printer bed to screen grid distance
                             const actualNoteDist = Math.round(printermap(noteDist));
+
+                            document.getElementById('note-dist').innerHTML = `${noteDist.toFixed(4)}mm`;
                             
                             //console.log(`note length vs screen: ${noteDist}/${actualNoteDist}`);
             

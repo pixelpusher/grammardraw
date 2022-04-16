@@ -242,8 +242,11 @@ export function createESequence({
 
         let jitter = (Math.round(2*Math.random())/10 + 0.8);
 
-        let ll = evenBlock ? jitter*longLength : longLength;
-        let ml = evenBlock ? minLength : jitter*minLength;
+        // let ll = evenBlock ? jitter*longLength : longLength;
+        // let ml = evenBlock ? minLength : jitter*minLength;
+
+        let ll = evenBlock ? longLength : longLength;
+        let ml = evenBlock ? minLength : minLength;
 
         for (let bend=0; bend < bends; bend++)
         {
@@ -263,7 +266,7 @@ export function createESequence({
         }
         // else 
         // {
-        //     sequence += `C:c3|D:${ll}|T:${-dir*angle}|D2:${minLength}|`;
+        //     sequence += `C:c3|DR:${ll}|T:${-dir*angle}|DL:${minLength}|`;
         // }
         if (block > 0 && (block % blocksPerRow === (blocksPerRow-1))) {
 //            dir = -dir;
