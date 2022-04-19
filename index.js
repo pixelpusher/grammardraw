@@ -29,6 +29,7 @@ import {
     SierpinskiArrowHeadReplacements
  } from "./modules/sequences.js";
 
+ import {ant_FunctionMap as functionMap } from './modules/functionmaps';
 
 window.addEventListener('load', async (event) => {
 
@@ -93,114 +94,6 @@ window.addEventListener('load', async (event) => {
     const lp = new LivePrinter(); // liveprinter instance
 
     
-    /**
-     * All important mapping of draw functions to sequence symbols (D, D2, T, etc.)
-     */
-    const functionMap = {
-        'D': {
-            "type": "main",
-            "function": (ant, arg, args) => {  
-                let moved = [];
-
-                let scaledMove;
-                
-                if (args && args.distance) {
-                    scaledMove = args.distance*Number(arg);
-                } else {
-                    scaledMove = Number(arg)*ant.scale;
-                }
-                
-                const angleRadians = Math.PI * (ant.angle/180);
-                
-                //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
-                //console.log(ant);
-
-                // move from current position to new position in the current direction by number of cells specified in cmd
-                let newx, newy;
-                
-                newx =  ant.x + Math.round(scaledMove * Math.cos(angleRadians));
-                newy =  ant.y + Math.round(scaledMove * Math.sin(angleRadians));
-
-                // move or die
-                //if (grid.get(newx, newy) === Grid.EMPTY) {
-                    if ((ant.x !== newx) || (ant.y !== newy)) {
-                        moved = [newx, newy];
-
-                        //console.log(`Moved: ${moved}`)
-
-                        ant.x = newx;
-                        ant.y = newy;
-                
-                        // update grid
-                        grid.set(newx, newy, Grid.FULL);
-                        // update path
-                        ant.currentLife++;
-                    
-                        ant.path[ant.currentLife] = [newx, newy];
-                        //console.log(ant.path);
-                    }
-                // } else {
-                //     console.log(`Ant hit edge or cell going towards (${newx},${newy})`);
-                //     //ant.alive = false;
-                // }
-                return moved; // moved
-            }
-        },
-        
-        'T': {
-            "type": "turn",
-            "function":
-                (ant, arg, args) => {// rotate internal angle only
-                //console.info(`T move ${arg}`);
-
-                ant.angle += Number(arg);
-                return [];
-            }
-        },
-
-        'S': {
-            "type": "scale",
-            "function": (ant, arg, args) => {// set scaling factor for draw operations
-                let infoString = `S by ${arg} from ${ant.scale} `;
-                ant.scale *= Number(arg);
-                infoString = infoString + `to ${ant.scale}`;
-                //console.info(infoString);
-
-                return [];
-            }
-        },
-        'C' : {
-            "type": "color",
-            "function": (ant, arg, args) => {// change stroke colour
-                
-                const c1 = `hsl(100,80%,40%)`; // green
-                const c2 = `hsl(60,90%,40%)`; // yellow
-                const c3 = `hsl(280,80%,40%)`; // purple
-                const c4 = `hsl(0,80%,50%)`; // red
-
-                const infoString = `C ${arg} :: ${eval(arg)}`;
-                
-                ant.line.attr({stroke: eval(arg)});
-
-                console.info(infoString);
-
-                return [];
-            }
-        },
-        'A': {
-            "type": "none",
-            "function": (ant, arg, args) => [] 
-        },
-        'B': {
-            "type": "none",
-            "function": (ant, arg, args) => [] 
-        },
-    };
-
-    functionMap.DR = functionMap.D; // synonym, for ECurve etc.
-    functionMap.DL = functionMap.D; // synonym, for ECurve etc.
-
-
     //
     // Ant movements, set in setup
     //

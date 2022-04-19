@@ -2,7 +2,7 @@
  * All important mapping of draw functions to sequence symbols (D, D2, T, etc.).
  * Relies on variable "lp" representing the liveprinter object (see liveprinter.printer.js)
  */
-export const lp_FunctionMap = {
+export const lp_functionMap = {
     'D': {
         "type": "main",
         "function": async (lp, arg, args) => {  
@@ -78,7 +78,7 @@ lp_functionMap.DL = lp_functionMap.D; // synonym, for ECurve etc.
 /**
  * All important mapping of draw functions to sequence symbols (D, D2, T, etc.)
  */
-export const ant_FunctionMap = {
+export const ant_functionMap = {
     'D': {
         "type": "main",
         "function": (ant, arg, args) => {  
