@@ -1,5 +1,5 @@
 {
-  "name": "@grammardraw",
+  "name": "grammardraw",
   "version": "1.0.0",
   "private": true,
   "description": "drawing using grammars",
