@@ -28,6 +28,7 @@
     "@svgdotjs/svg.js": "^3.1.2",
     "@tonaljs/tonal": "^4.6.5",
     "honeycomb-grid": "^3.1.8",
+    "liveprinter-utils": "github:pixelpusher/lp-utils",
     "nearley": "^2.20.1",
     "tone": "^14.7.77"
   },

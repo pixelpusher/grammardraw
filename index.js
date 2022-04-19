@@ -8,13 +8,13 @@ import { scaleTranspose } from '@strudel.cycles/tonal';
 
 import * as Tone from 'tone';
 
-import { infiter, numrange, repeat, countto, Vector, makeMapping } from './modules/util/index.js';
+import { infiter, numrange, repeat, countto, Vector, makeMapping } from 'liveprinter-utils';
 
 import LivePrinter from "./modules/liveprinter.printer.js";
 
 import Ant from "./modules/ant.js";
 import Grid from "./modules/grid.js";
-import { d2r, moveAnt, createAnt, removeAntTrace } from "./modules/antgrid-api";
+
 import { 
     countAll,
     parseSequenceToMap, 
@@ -89,6 +89,9 @@ window.addEventListener('load', async (event) => {
         .stroke({ width: 1, color: '#999' });
     
     const animatingInput = document.querySelector('input[id="animate"]');
+
+    const lp = new LivePrinter(); // liveprinter instance
+
     
     /**
      * All important mapping of draw functions to sequence symbols (D, D2, T, etc.)
@@ -107,7 +110,7 @@ window.addEventListener('load', async (event) => {
                     scaledMove = Number(arg)*ant.scale;
                 }
                 
-                const angleRadians = d2r(ant.angle);
+                const angleRadians = Math.PI * (ant.angle/180);
                 
                 //console.info(`D move ${arg}, scale:${ant.scale}, total:${scaledMove}`);
                 //console.log(ant);
@@ -296,6 +299,7 @@ window.addEventListener('load', async (event) => {
         return [x,y];
     }
 
+
     /**
      * Set up grids etc.
      */
@@ -479,7 +483,6 @@ window.addEventListener('load', async (event) => {
 
     document.getElementById('bl3').innerHTML = `${noteBaseDuration.toFixed(4)}s`;
 
-    const lp = new LivePrinter(); // liveprinter instance
 
     // maps printer y coords to grid y
     const printermap = makeMapping([0,lp.maxy], [0,dims[1]]);

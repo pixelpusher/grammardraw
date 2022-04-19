@@ -22,7 +22,7 @@
  * under the License.
  */
 
-import Vector from "./util/vector";
+import { Vector } from "liveprinter-utils";
 
 
 class Printer {
@@ -125,10 +125,11 @@ class Printer {
     /**
      *  Notify listeners that GCode is ready to be consumed.
      *  @param {String} gcode GCode command string to send
-     *  @returns{any} Nothing.
+     *  @returns {Array} Array of resolved Promises.
      */
     async gcodeEvent(gcode) {
         const results = await Promise.all(this.gcodeListeners.map(async (l) => l.gcodeEvent(gcode)));
+        return results;
     }
 
     //
