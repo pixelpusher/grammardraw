@@ -111,22 +111,31 @@ window.addEventListener('load', async (event) => {
         setup();
     });
 
-    let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
+//    let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
+    let noteMods = [[0,2], [4,1], [2,1], [1,2], [4,1], [2,1], [7,2], [4,1], [2,1], [0,2], [4,1], [2,1]];
+
+    document.getElementById('mods').textContent = JSON.stringify(noteMods);
 
     document.getElementById('mods').addEventListener('keydown', function (keyEvent) {
         if (keyEvent.code === 'Enter') {
 
             let goodValue = null;
 
+            this.classList.remove('run-animation');
+            this.classList.remove('run-error');
+            void this.offsetWidth; // reflow trigger
+
             try {
-                goodValue = eval('[' + this.value + ']');
+                goodValue = eval(this.value);
             }
             catch (err) {
                 goodValue = false;
+                this.classList.add('run-error');
             }
             if (goodValue)
             {
                 noteMods = goodValue;
+                this.classList.add('run-animation');
             }
         }
     });
@@ -314,9 +323,9 @@ window.addEventListener('load', async (event) => {
 
             /// END CURVE generators --------------------------------
 
-            //antFunctionSequence = sierpIterated; // choose a curve
+            antFunctionSequence = sierpIterated; // choose a curve
         
-            antFunctionSequence = eFunctionSequence;
+            //antFunctionSequence = eFunctionSequence;
 
             ////----------------------------------------------------
 

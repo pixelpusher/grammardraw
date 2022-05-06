@@ -21,7 +21,7 @@ return funcArray.filter(
 
 /**
  * 
- * @param {string} sequence The string representation of the sequence to turn into a an array of functions 
+ * @param {string} sequence The string representation of the sequence (ending with a '|') to turn into a an array of functions 
  * @returns {Array} Keys mapping to drawing functions: each entry is an object:
  * { 
  *      type:"function",
@@ -29,6 +29,7 @@ return funcArray.filter(
  *      arg: args     // a number, object, string to be evaluated as JavaScript and passed to the function
  *  }
  * @throws {SyntaxError} on parse issue
+ * @example parseSequenceToMap("T:-60|DL:4|T:60|C:c1|DR:4|T:60|DL:4|T:-60|")
  */
 export function parseSequenceToMap(sequence) {
 

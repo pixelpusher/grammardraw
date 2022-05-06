@@ -71,6 +71,43 @@ label {
   border: 1px dotted white;
 }
 
+@keyframes glowing {
+  0% {
+    background-color: #fff;
+    box-shadow: 0 0 0 #2ba805;
+  }
+  90% {
+    background-color: #49e819;
+    box-shadow: 10px 10px 10px #49e819;
+  }
+  100% {
+    background-color: #fff;
+    box-shadow: 0 0 0 #fff;
+  }
+}
+
+@keyframes error-glow {
+  0% {
+    background-color: #fff;
+    box-shadow: 0 0 0 #ff1515;
+  }
+  90% {
+    background-color: #ffb0b0;
+    box-shadow: 10px 10px 10px #ff1515;
+  }
+  100% {
+    background-color: #ffb0c9;
+    box-shadow: 4px 4px 4px #ff8615;
+  }
+}
+
+.run-animation {
+  animation: glowing 250ms 1;
+}
+
+.run-error {
+  animation: error-glow 250ms 1;
+}
 
 * {
   -webkit-box-sizing: border-box;
