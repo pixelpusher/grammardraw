@@ -113,8 +113,8 @@ export const ant_functionMap = {
                     ant.x = newx;
                     ant.y = newy;
             
-                    // update grid
-                    grid.set(newx, newy, Grid.FULL);
+                    // update grid -- use args.grid??
+                    //grid.set(newx, newy, Grid.FULL);
                     // update path
                     ant.currentLife++;
                 

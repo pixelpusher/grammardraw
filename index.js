@@ -29,7 +29,7 @@ import {
     SierpinskiArrowHeadReplacements
  } from "./modules/sequences.js";
 
- import {ant_FunctionMap as functionMap } from './modules/functionmaps';
+ import {ant_functionMap as functionMap } from './modules/functionmaps';
 
 window.addEventListener('load', async (event) => {
 
