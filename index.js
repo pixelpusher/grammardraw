@@ -26,7 +26,9 @@ import {
     eCurveReplacements, 
     testSequences, 
     createSierpinskiArrowHeadSequence,
-    SierpinskiArrowHeadReplacements
+    sierpinskiArrowHeadReplacements,
+    zigZagReplacements,
+    createZigzagCurve
  } from "./modules/sequences.js";
 
  import {ant_functionMap as functionMap } from './modules/functionmaps';
@@ -313,20 +315,36 @@ window.addEventListener('load', async (event) => {
 
             sideLength = 1;
 
-            const sierpCurveReps = SierpinskiArrowHeadReplacements(sideLength);
+            const sierpCurveReps = sierpinskiArrowHeadReplacements(sideLength);
             let sierpIterated = replaceFunctionsInMap(sierpCurveReps, SierpinskiCurve);
 
             await repeat(serpIters-1, async (i) => sierpIterated = replaceFunctionsInMap(sierpCurveReps, sierpIterated));
+
+            const zigZagReps = zigZagReplacements(sideLength);
+            let ZigZagCurve = [];
+            
+            try {
+                ZigZagCurve = parseSequenceToMap(createZigzagCurve(sideLength));
+            }
+            catch (err) {
+                console.error(err);
+            }
+
+            let zigzagIterated = replaceFunctionsInMap(zigZagReps, ZigZagCurve);
+
+            zigzagIterated = replaceFunctionsInMap(zigZagReps, zigzagIterated);
 
             //console.log('SierpinskiCurve:');
             //console.log(sierpIterated);
 
             /// END CURVE generators --------------------------------
 
-            antFunctionSequence = sierpIterated; // choose a curve
+            //antFunctionSequence = sierpIterated; // choose a curve
         
             //antFunctionSequence = eFunctionSequence;
 
+            antFunctionSequence = ZigZagCurve;
+            antFunctionSequence = zigzagIterated;
             ////----------------------------------------------------
 
             drawGroup.clear();
@@ -335,6 +353,9 @@ window.addEventListener('load', async (event) => {
             notesPlayed = 0;
 
             ant = new Ant(0,dims[1]-1);
+
+            ant = new Ant(0,dims[1]-80); // for zigzag
+
 
             grid.clear();
             grid.set(ant.x, ant.y, Grid.FULL);

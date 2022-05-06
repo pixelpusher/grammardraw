@@ -88,7 +88,7 @@ export function parseSequenceToMap(sequence) {
  */
  export function createSierpinskiArrowHeadSequence()
  {
-    const sequence = "DR:0";
+    const sequence = "DR:0|";
     return sequence;
  }
  
@@ -97,7 +97,7 @@ export function parseSequenceToMap(sequence) {
   * @param {Number} sideLength Length of a segment 
   * @returns {Array} replacement map for SierpinskiArrowHead l-system
   */
- export function SierpinskiArrowHeadReplacements(sideLength) {
+ export function sierpinskiArrowHeadReplacements(sideLength) {
     const DRMap = `T:-60|DL:${sideLength}|T:60|DR:${sideLength}|T:60|DL:${sideLength}|T:-60|`;
     const DLMap = `T:60|DR:${sideLength}|T:-60|DL:${sideLength}|T:-60|DR:${sideLength}|T:60|`;
     
@@ -107,6 +107,22 @@ export function parseSequenceToMap(sequence) {
     ];
  }
  
+
+export function createZigzagCurve(sideLength) {
+    const sequence=`DR:${sideLength}|T:-90|DL:${sideLength}|T:90|DL:${sideLength}|T:90|DL:${sideLength}|DR:${sideLength}|T:-90|DR:${sideLength}|T:-90|DL:${sideLength}|T:90|DL:${sideLength}|`;
+    return sequence;
+}
+
+export function zigZagReplacements(sideLength) {
+    const DRMap = `DL:${sideLength}|T:90|DR:${sideLength}|T:-90|DR:${sideLength}|T:-90|DR:${sideLength}|DL:${sideLength}|T:90|DR:${sideLength}|T:90|DR:${sideLength}|T:-90|DR:${sideLength}|`; // to left side
+    const DLMap = `DR:${sideLength}|T:-90|DL:${sideLength}|T:90|DL:${sideLength}|T:90|DL:${sideLength}|DR:${sideLength}|T:-90|DL:${sideLength}|T:-90|DL:${sideLength}|T:90|DL:${sideLength}|`; // to right side
+    
+    return [
+        {name: 'DL', sequence:parseSequenceToMap(DLMap) },
+        {name: 'DR', sequence:parseSequenceToMap(DRMap) }
+    ];
+ }
+
 
 /**
  * Classic Hilbert curve
