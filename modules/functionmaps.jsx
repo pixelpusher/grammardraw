@@ -4,10 +4,8 @@
  */
 export const lp_functionMap = {
     'D': {
-        "type": "main",
+        "type": "draw",
         "function": async (lp, arg, args) => {  
-            let moved = [];
-
             let scaledMove;
             
             if (args && args.distance) {
@@ -19,7 +17,20 @@ export const lp_functionMap = {
             return lp.draw(scaledMove);
         }
     },
-    
+    'M': {
+        "type": "move",
+        "function": async (lp, arg, args) => {  
+            let scaledMove;
+            
+            if (args && args.distance) {
+                scaledMove = args.distance*Number(arg);
+            } else {
+                scaledMove = Number(arg);
+            }
+
+            return lp.travel(scaledMove);
+        }
+    },
     'T': {
         "type": "turn",
         "function":
@@ -27,38 +38,6 @@ export const lp_functionMap = {
             //console.info(`T move ${arg}`);
 
             return lp.turn(Number(arg));
-        }
-    },
-
-    // NOT USED
-    'S': {
-        "type": "scale",
-        "function": async (lp, arg, args) => {// set scaling factor for draw operations
-            let infoString = `S by ${arg} from ${ant.scale} `;
-            
-            //lp.scale *= Number(arg);
-            
-            infoString = infoString + `to ${ant.scale}`;
-            //console.info(infoString);
-
-            return lp;
-        }
-    },
-
-    'C' : {
-        "type": "color",
-        "function": async (lp, arg, args) => {// change stroke colour
-            
-            const c1 = `hsl(100,80%,40%)`; // green
-            const c2 = `hsl(60,90%,40%)`; // yellow
-            const c3 = `hsl(280,80%,40%)`; // purple
-            const c4 = `hsl(0,80%,50%)`; // red
-
-            const infoString = `C ${arg} :: ${eval(arg)}`;
-            
-            console.info(infoString);
-
-            return lp;
         }
     },
     'NOOP': {
