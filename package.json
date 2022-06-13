@@ -13,8 +13,9 @@
   },
   "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
-    "test": "npx parcel index.html",
-    "testseq": "npx parcel modules/sequences.js"
+    "run": "npx parcel index.html",
+    "testseq": "npx parcel modules/sequences.js",
+    "test": "npx parcel test.html"
   },
   "author": "Evan Raskob",
   "license": "GPL-3.0-or-later",

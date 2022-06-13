@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <title>Fractal paths test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- <meta property="og:image" content="thumbnail.jpg" /> -->
+    <link type="text/css" rel="stylesheet" href="style.css" />
+  </head>
+  <body class="testbody">
+    <script type="module" src="./test.js"></script>
+
+    <div id="info">stuff:<br/></div>
+    <div id="music-info" class="run-animation">
+      <div id="segs-txt">
+        segment:
+      </div>
+      <div><span id="cur-seg"></span> / <span id="segs"></span></div>
+
+      <div id="beat-length">
+        curent time:
+      </div>
+      <div id="cur-time">0s</div>
+      <div id="tone-time">0s</div>
+      
+      <div id="note-string">--</div>
+      <div id="bl2">
+        Beat length:
+      </div>
+      <div id="bl3">0s</div>
+
+      <div >
+        Note distance:
+      </div>
+      <div id="note-dist">0mm</div>
+
+      <div >
+        Restart:
+      </div>
+      <button id="reset-btn">reset</button>
+
+    </div>
+    <div><textarea cols="80" id="mods"></textarea></div>
+    <div>
+        <button id="play">play</button>
+        <div id="animateDiv"><label for="animate">Animate:</label><input type="checkbox" id="animate" name="animate"></div>
+    </div>
+    <div id="gen-info"></div>
+  </body>
+</html>
