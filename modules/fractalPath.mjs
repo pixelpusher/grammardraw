@@ -6,18 +6,49 @@ import { countAll, parseSequenceToMap } from "./sequences";
 
 //import {lp_functionMap as functionMap } from 'functionmaps.mjs';
 
+/**
+ * Array of note modifiers for each fractal segment [step, duration] where step is a positive or negative number and duration is > 0
+ */
+let _noteMods = [[0,2], [4,1], [2,1], [1,2], [4,1], [2,1], [7,2], [4,1], [2,1], [0,2], [4,1], [2,1]];
 
-export let noteMods = [[0,2], [4,1], [2,1], [1,2], [4,1], [2,1], [7,2], [4,1], [2,1], [0,2], [4,1], [2,1]];
-export let scales = ["D2","C2"]; // progression
+/**
+ * Scale progression to play through
+ */
+let _scales = ["D2","C2"]; // progression
 
-let noteBaseDuration = Tone.Time("16n").toSeconds(); // note duration for calculations
+export function getNoteMods() { return _noteMods};
 
-export function setBaseNoteDuration(time='16n')
+export function setNoteMods(nm) { _noteMods = nm};
+
+export function getScales() { return _scales};
+
+export function setScales(sc) { _scales=sc};
+
+/**
+ *  Note duration for calculations, will be used by liveprinter to calculate based on bpm
+ */ 
+let noteBaseDuration = 1/16; 
+
+/**
+ * Set note duration for calculations in beats (like 2, or a partial like 1/16), will be used by liveprinter to calculate based on bpm
+ * @param {Number} beats 
+ */
+export function setBaseNoteDuration(beats)
 {
-    noteBaseDuration = Tone.Time(time).toSeconds(); // note duration for calculations
+    noteBaseDuration = beats; // note duration for calculations
 }
 
-// set base duration for notes for quantization
+//let noteBaseDuration = Tone.Time("16n").toSeconds(); // note duration for calculations
+
+// export function setBaseNoteDuration(time='16n')
+// {
+//     noteBaseDuration = Tone.Time(time).toSeconds(); // note duration for calculations
+// }
+
+/**
+ * 
+ * @returns {Number} Duration of a "note" in beats (like 1/6 or 2 for example)
+ */
 export function getBaseNoteDuration() { return noteBaseDuration; }
 
 /**
@@ -114,8 +145,10 @@ export async function* iterate(livePrinter, sequenceString, functionMap) {
         const funcBody = functionMap[funcName].function;
         const funcArgs = funcInfo.arg;
         const baseScale = Scale.get(`${scales[notesPlayed % scales.length]} melodic minor`);
+        const noteBaseDurationMs = livePrinter.b2t(noteBaseDuration);
+        totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDurationMs; // this might change during iterations
 
-        totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDuration; // this might change during iterations
+        //totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDuration; // this might change during iterations
 
         try {
 
@@ -130,7 +163,10 @@ export async function* iterate(livePrinter, sequenceString, functionMap) {
                     const noteMidi = Note.midi(noteString);
                     const noteSpeed = livePrinter.midi2speed(noteMidi,'x'); // in seconds, not ms
                     livePrinter.drawspeed(noteSpeed);
-                    const noteDuration = noteBaseDuration*currentNoteLength; // note seconds
+                    //const noteDuration = noteBaseDuration*currentNoteLength; // note seconds
+                    
+                    const noteDuration = noteBaseDurationMs*currentNoteLength; // note seconds
+                    
                     const noteDist = livePrinter.t2mm(noteDuration*1000, noteSpeed); 
                     
                     //document.getElementById('note-dist').innerHTML = `${noteDist.toFixed(4)}mm`;                
