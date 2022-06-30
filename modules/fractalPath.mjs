@@ -144,16 +144,17 @@ export async function* iterate(livePrinter, sequenceString, functionMap) {
         const functionType = functionMap[funcName].type;
         const funcBody = functionMap[funcName].function;
         const funcArgs = funcInfo.arg;
-        const baseScale = Scale.get(`${_scales[notesPlayed % _scales.length]} melodic minor`);
-        const noteBaseDurationMs = livePrinter.b2t(noteBaseDuration);
-        totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDurationMs; // this might change during iterations
-
-        //totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDuration; // this might change during iterations
 
         try {
 
             if (functionType.match(/draw|move/g)) { // draw or move functions only
 
+                let baseScale = Scale.get(`${_scales[notesPlayed % _scales.length]} melodic minor`);
+                let noteBaseDurationMs = livePrinter.b2t(noteBaseDuration);
+                totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDurationMs; // this might change during iterations
+        
+                //totalSequenceDuration = mainFunctionsCount*totalNoteModsLength*noteBaseDuration; // this might change during iterations
+        
                 let currentTotalDuration = 0; // duration for this mini-note-sequence
 
                 for(let n=0; n<_noteMods.length; n++)
@@ -167,7 +168,7 @@ export async function* iterate(livePrinter, sequenceString, functionMap) {
                     
                     const noteDuration = noteBaseDurationMs*currentNoteLength; // note seconds
                     
-                    const noteDist = livePrinter.t2mm(noteDuration*1000, noteSpeed); 
+                    const noteDist = livePrinter.t2mm(noteDuration, noteSpeed); 
                     
                     //document.getElementById('note-dist').innerHTML = `${noteDist.toFixed(4)}mm`;                
                     //console.info(functionMap[result.name].type);
