@@ -10,23 +10,26 @@ import {createESequence} from "./modules/sequences"
 
 
  import { noteMods, scales, getBaseNoteDuration, setBaseNoteDuration, 
-    iterate,
+    notestep,
     on, off
  } from "./modules/fractalPath.mjs";
 
  const listener = {
-     'step': (v) => console.log(`step event: ${v}`),
+     'step': (v) => {
+        for (let i in v)
+            console.log(`step event:${i}::${v[i]}`);
+    },
      'action': ({noteString,noteMidi,noteSpeed,notesPlayed,noteDuration,noteDist,
         currentTotalDuration, 
         totalSequenceDuration,
         moved}) => {
-            console.log(`action event: ${noteString,noteMidi,noteSpeed,notesPlayed,noteDuration,noteDist,
+            console.log("action event");
+            console.log({noteString,noteMidi,noteSpeed,notesPlayed,noteDuration,noteDist,
                 currentTotalDuration, 
                 totalSequenceDuration,
-                moved}`);
+                moved});
             document.getElementById('cur-time').innerHTML = `${currentTotalDuration}s`;
             document.getElementById('note-string').innerHTML = `${noteString}`;
-            
         },
      'done': (v) => {
         animating = false; 
@@ -49,7 +52,7 @@ const eSequence = createESequence({bends:2,
     startAngle:90
 });
 
-let fractalIterator = iterate(new LivePrinter(), eSequence, functionMap);
+let fractalIterator = notestep(new LivePrinter(), eSequence, functionMap);
 
 
 // setup listeners
@@ -104,7 +107,7 @@ async function draw(timestamp)
     if (animating) // redundant
     {
         const result = await fractalIterator.next();
-        console.log(result);
+        console.log(result.value);
     }
     //animationFrameHandle = requestAnimationFrame(draw);
 }

@@ -1,6 +1,7 @@
-// see https://github.com/flauwekeul/honeycomb#get
-
-import { extendHex, defineGrid } from 'honeycomb-grid';
+/**
+ * Don't waste time with this, it's obsolete -- see test.js instead. Needs
+ * to be cleared out!
+ */
 import { SVG, extend as SVGextend, Element as SVGElement } from '@svgdotjs/svg.js';
 import { Note, Interval, Scale, note } from '@tonaljs/tonal';
 
@@ -8,7 +9,9 @@ import { scaleTranspose } from '@strudel.cycles/tonal';
 
 import * as Tone from 'tone';
 
-import { infiter, numrange, repeat, countto, Vector, makeMapping } from 'liveprinter-utils';
+import * as fractalPath from './modules/fractalPath.mjs';
+
+import { repeat, makeMapping } from 'liveprinter-utils';
 
 import LivePrinter from "./modules/liveprinter.printer.js";
 
@@ -31,7 +34,7 @@ import {
     createZigzagCurve
  } from "./modules/sequences.js";
 
- import {ant_functionMap as functionMap } from './modules/functionmaps';
+ import {ant_functionMap as functionMap } from './modules/functionmaps.mjs';
 
 
 console.log('page is fully loaded');
@@ -43,18 +46,13 @@ const drawGroup = drawing.group();
 const pointsGroup = drawing.group();
 
 
-console.log(drawing.node.clientHeight);
-console.log(`w:${drawing.width()} :: h:${drawing.height()}` );
+// console.log(drawing.node.clientHeight);
+// console.log(`w:${drawing.width()} :: h:${drawing.height()}` );
 
-console.log(Scale.scaleNotes(["F#5","D5", "B4", "G4", "Bb4", "B4", "A4"]));
-
-
-console.log(Scale.scaleNotes(["F#5","D5"]));
-
-
-console.log(Scale.scaleNotes(["B4", "G4"]));
-
-console.log(Scale.scaleNotes(["B4", "A4"]));
+// console.log(Scale.scaleNotes(["F#5","D5", "B4", "G4", "Bb4", "B4", "A4"]));
+// console.log(Scale.scaleNotes(["F#5","D5"]));
+// console.log(Scale.scaleNotes(["B4", "G4"]));
+// console.log(Scale.scaleNotes(["B4", "A4"]));
 
 
 let w = drawing.node.clientWidth*0.9;
@@ -66,6 +64,7 @@ const dims = [800,600]; // dimensions of underlying grid - careful not to make t
 
 // for draw and current animation
 let animating = false;
+let noteIterator = null;
 
 let then = 0; // last draw function call
 let ant = null;
@@ -77,19 +76,6 @@ let sequenceLength = 0; // length of draw/main functions in current sequence, fo
 const synth = new Tone.Synth().toDestination();
 const metro = new Tone.AMSynth().toDestination();
 
-
-const Hex = extendHex({ size: 4 }); 
-const HexGrid = defineGrid(Hex);
-
-// get the corners of a hex (they're the same for all hexes created with the same Hex factory)
-const corners = Hex().corners();
-// an SVG symbol can be reused
-const hexSymbol = drawing.symbol()
-    // map the corners' positions to a string and create a polygon
-    .polygon(corners.map(({ x, y }) => `${x},${y}`))
-    .fill('none')
-    .stroke({ width: 1, color: '#999' });
-
 const animatingInput = document.querySelector('input[id="animate"]');
 
 const lp = new LivePrinter(); // liveprinter instance
@@ -98,7 +84,7 @@ const lp = new LivePrinter(); // liveprinter instance
 //
 // Ant movements, set in setup
 //
-let antSequence = "", antFunctionSequence = [];
+let antFunctionSequence = [];
 
 
 document.getElementById('play').addEventListener('click', async (event) => {
@@ -111,9 +97,6 @@ document.getElementById('play').addEventListener('click', async (event) => {
 document.getElementById('reset-btn').addEventListener('click', function (keyEvent) {
     setup();
 });
-
-//    let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
-let noteMods = [[0,2], [4,1], [2,1], [1,2], [4,1], [2,1], [7,2], [4,1], [2,1], [0,2], [4,1], [2,1]];
 
 document.getElementById('mods').textContent = JSON.stringify(noteMods);
 
@@ -209,6 +192,17 @@ function gridPosToWorld(pos, g) {
 async function setup()
 {
     console.info("SETUP----------------");
+
+
+    //    let noteMods = [[2,1], [0,2], [1,1], [4,2], [2,1], [3,1], [6,2], [4,1], [5,1]];
+    fractalPath.setNoteMods([[0,2], [4,1], [2,1], [1,2], [4,1], [2,1], [7,2], [4,1], [2,1], [0,2], [4,1], [2,1]]);
+
+
+    fractalPath.on('action', handleAction);
+    fractalPath.on('done', handleDone);
+
+
+    noteIterator = fractalPath.notestep(lp, eCurveIterated, functionMap);
 
     //TEST
     testSequences();
@@ -414,92 +408,22 @@ let totalSequenceDuration = 0; // for recording purposes
 let currentSegment = 0;
 
 
+function handleAction({
+    noteString,noteMidi,noteSpeed,notesPlayed,noteDuration,noteDist,currentTotalDuration, 
+    totalSequenceDuration,moved
+}) {
+
+    document.getElementById('cur-seg').innerHTML = `${notesPlayed}`;
+    document.getElementById('note-dist').innerHTML = `${noteDist.toFixed(4)}mm`;
+    document.getElementById('cur-time').innerHTML = `${currentTotalDuration.toFixed(2)}s / ${totalSequenceDuration.toFixed(2)}s`;
+}
+
+
 /**
  * MAIN DRAWING FUNCTION
  */
 function draw() {
-
-    if (animating && antFunctionSequence.length > 0)    
-    {
-        let scale = Scale.get(`${scales[notesPlayed % scales.length]} melodic minor`);
-
-        // apply functions until we hit a 'main' function and get results  
-
-        while (antFunctionSequence.length > 0)
-        {
-            const funcInfo = antFunctionSequence.shift();
-            const functionType = functionMap[funcInfo.name].type;
-            const funcBody = functionMap[funcInfo.name].function;
-            const funcArgs = funcInfo.arg;
-
-            try {
-
-                if (functionType == "main") { // draw function
-
-                    //const noteMods = [[0,1], [4,2], [0,3], [2,1], [6,1]]; // [note shift, duration]
-
-                    let currentTotalDuration = 0;
-
-                    currentSegment++; // moved a segment
-
-                    document.getElementById('cur-seg').innerHTML = `${currentSegment}`;
-
-                    noteMods.forEach((n, i) =>{
-                        const noteString = scale.notes[n[0] % scale.notes.length];
-                        const noteMidi = Note.midi(noteString);
-                        const noteSpeed = lp.midi2speed(noteMidi,'x'); // in seconds, not ms
-                        const noteDuration = n[1]*noteBaseDuration; // note seconds
-                        const noteDist = lp.t2mm(noteDuration*1000, noteSpeed); 
-            
-                        // convert note distance on printer bed to screen grid distance
-                        const actualNoteDist = Math.round(printermap(noteDist));
-
-                        document.getElementById('note-dist').innerHTML = `${noteDist.toFixed(4)}mm`;
-                        
-                        //console.log(`note length vs screen: ${noteDist}/${actualNoteDist}`);
-        
-
-                        //console.info(functionMap[result.name].type);
-                        // moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
-                        
-                        const callback = (i === (noteMods.length-1)) ? ()=>{ 
-                            notesPlayed++;
-                            moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
-                            updateAntPath(ant); // on screen
-                            draw();
-                        } : ()=>{
-                            moved = funcBody(ant, funcArgs, {distance:actualNoteDist});
-                            updateAntPath(ant); // on screen
-                        }; 
-                        
-                        // PLAY NOTE for full duration with callback
-                        playNote(noteString, noteDuration, currentTotalDuration, callback);
-                        currentTotalDuration += noteDuration;
-                        totalSequenceDuration += noteDuration;
-                        
-                    });
-                    //currentNoteIndex = (currentNoteIndex + 1) % (notesSequence.length;
-                    //currentNoteIndex = (currentNoteIndex+1) % 2;
-
-                    // done drawing for this round! -------
-                    break; 
-
-                }
-                else {
-                    // other function like colour etc.
-
-                    moved = funcBody(ant, funcArgs);
-                }
-
-            }
-            catch (err) 
-            {
-                console.error(err);
-            }
-        }
-    }
-    document.getElementById('cur-time').innerHTML = `${totalSequenceDuration.toFixed(2)}s / min: ${sequenceLength*noteMods.length*noteBaseDuration}`;
-
+    noteIterator.next();
 }
 
 const resize = setup;
